@@ -30,3 +30,119 @@ model Session {
   collaborator  Boolean?  @default(false)
   emailVerified Boolean?  @default(false)
 }
+
+// ============================================
+// WEIGHT LOSS CHALLENGE MODELS
+// ============================================
+
+model Challenge {
+  id          String   @id @default(uuid())
+  shop        String   // Store domain (e.g., "mystore.myshopify.com")
+  name        String   // Challenge name (e.g., "Summer 2025 Challenge")
+  description String?  // Optional description
+  startDate   DateTime // When challenge starts
+  endDate     DateTime // When challenge ends
+  isActive    Boolean  @default(true) // Can be manually disabled
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  participants Participant[]
+
+  // Indexes for performance
+  @@index([shop, startDate, endDate])
+  @@index([shop, isActive])
+}
+
+model Participant {
+  id                String             @id @default(uuid())
+  challengeId       String
+  shop              String             // Store domain
+  customerId        String             // Shopify Customer ID (e.g., "gid://shopify/Customer/123")
+  email             String
+  firstName         String?
+  lastName          String?
+  startWeight       Float?             // Starting weight (lbs or kg)
+  endWeight         Float?             // Ending weight (lbs or kg)
+  status            ParticipantStatus  @default(NOT_STARTED)
+  startedAt         DateTime?          // When they submitted start form
+  completedAt       DateTime?          // When they submitted end form
+
+  // Shopify Customer Order Data
+  ordersCount       Int?               // Total number of orders
+  totalSpent        Float?             // Total amount spent (stored as float)
+
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  // Relations
+  challenge         Challenge          @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  submissions       Submission[]
+
+  // Indexes
+  @@index([challengeId])
+  @@index([shop, customerId])
+  @@index([email])
+  @@unique([challengeId, customerId]) // One participant per challenge per customer
+}
+
+model Submission {
+  id            String         @id @default(uuid())
+  participantId String
+  shop          String
+  type          SubmissionType // START or END
+  weight        Float          // Weight at time of submission (lbs or kg)
+  submittedAt   DateTime       @default(now())
+  notes         String?        // Optional notes from customer
+
+  // Relations
+  participant   Participant    @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  photos        Photo[]
+
+  // Indexes
+  @@index([participantId, type])
+  @@index([shop])
+}
+
+model Photo {
+  id           String          @id @default(uuid())
+  submissionId String
+  shop         String
+  s3Key        String          // S3 object key (e.g., "challenges/abc123/photo1.jpg")
+  s3Bucket     String          // S3 bucket name
+  s3Url        String          // Full public URL to photo
+  fileName     String          // Original filename
+  fileSize     Int             // File size in bytes
+  mimeType     String          // e.g., "image/jpeg", "image/png"
+  order        Int             // Photo order (1, 2, or 3)
+  orientation  PhotoOrientation // FRONT, SIDE, or BACK
+  uploadedAt   DateTime        @default(now())
+
+  // Relations
+  submission   Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+
+  // Indexes
+  @@index([submissionId])
+  @@index([shop])
+}
+
+// ============================================
+// ENUMS
+// ============================================
+
+enum ParticipantStatus {
+  NOT_STARTED  // Signed up but hasn't submitted start form
+  IN_PROGRESS  // Submitted start form, waiting for end form
+  COMPLETED    // Submitted both start and end forms
+}
+
+enum SubmissionType {
+  START
+  END
+}
+
+enum PhotoOrientation {
+  FRONT
+  SIDE
+  BACK
+}

@@ -15,6 +15,32 @@ export default async function handleRequest(
   reactRouterContext: EntryContext
 ) {
   addDocumentResponseHeaders(request, responseHeaders);
+
+  // Allow iframe embedding from Shopify storefronts
+  // Remove restrictive X-Frame-Options header if present
+  responseHeaders.delete("X-Frame-Options");
+
+  // Set Content-Security-Policy to allow framing from Shopify domains
+  const csp = responseHeaders.get("Content-Security-Policy");
+  if (csp) {
+    // If CSP exists, modify it to allow framing from Shopify
+    const newCsp = csp.replace(/frame-ancestors[^;]*/g, "").trim();
+    responseHeaders.set("Content-Security-Policy", `${newCsp}; frame-ancestors 'self' https://*.myshopify.com http://*.myshopify.com`);
+  } else {
+    // If no CSP, add one that allows Shopify framing
+    responseHeaders.set("Content-Security-Policy", "frame-ancestors 'self' https://*.myshopify.com http://*.myshopify.com");
+  }
+
+  // Also set Access-Control-Allow-Origin for CORS
+  const url = new URL(request.url);
+  const origin = request.headers.get("Origin");
+  if (origin && (origin.includes(".myshopify.com") || origin.includes("trycloudflare.com"))) {
+    responseHeaders.set("Access-Control-Allow-Origin", origin);
+    responseHeaders.set("Access-Control-Allow-Credentials", "true");
+    responseHeaders.set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+    responseHeaders.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  }
+
   const userAgent = request.headers.get("user-agent");
   const callbackName = isbot(userAgent ?? '')
     ? "onAllReady"

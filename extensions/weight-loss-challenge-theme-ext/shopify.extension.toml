@@ -1,0 +1,17 @@
+# Learn more about configuring theme app extensions:
+# https://shopify.dev/docs/apps/online-store/theme-app-extensions/configuration
+
+api_version = "2025-01"
+
+[[extensions]]
+name = "Weight Loss Challenge"
+handle = "weight-loss-challenge"
+uid = "6f748484-4623-0d77-244c-ffde3e215e44875b4d0a"
+type = "theme"
+runtime = "node"
+
+  [extensions.settings]
+  
+    [[extensions.settings.blocks]]
+    type = "challenge_form"
+    name = "Challenge Form"

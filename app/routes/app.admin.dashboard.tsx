@@ -1,12 +1,13 @@
-import type {
-  HeadersFunction,
-  LoaderFunctionArgs,
-} from "react-router";
-import { Link, useLoaderData, useRouteError } from "react-router";
+import { type LoaderFunctionArgs, useLoaderData, Link, useRouteError } from "react-router";
+import { useState } from "react";
 import { authenticate } from "../shopify.server";
-import { boundary } from "@shopify/shopify-app-react-router/server";
 import { getActiveChallenge } from "../utils/challenge.server";
 import prisma from "../db.server";
+import { boundary } from "@shopify/shopify-app-react-router/server";
+
+// ============================================
+// LOADER - Fetch all participants
+// ============================================
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
@@ -16,10 +17,10 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const activeChallenge = await getActiveChallenge(shop);
 
   if (!activeChallenge) {
-    return {
+    return ({
       participants: [],
       activeChallenge: null,
-    };
+    });
   }
 
   // Get all participants for the active challenge with their submissions
@@ -66,10 +67,12 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       endDate: endSubmission?.submittedAt,
       startPhotosCount: startSubmission?.photos.length || 0,
       endPhotosCount: endSubmission?.photos.length || 0,
+      ordersCount: participant.ordersCount,
+      totalSpent: participant.totalSpent,
     };
   });
 
-  return {
+  return ({
     participants: tableData,
     activeChallenge: {
       id: activeChallenge.id,
@@ -83,68 +86,46 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
       inProgress: participants.filter(p => p.status === "IN_PROGRESS").length,
       completed: participants.filter(p => p.status === "COMPLETED").length,
     },
-  };
+  });
 };
 
-export default function Index() {
+// ============================================
+// COMPONENT - Admin Dashboard
+// ============================================
+
+export default function AdminDashboard() {
   const { participants, activeChallenge, stats } = useLoaderData<typeof loader>();
+  const [searchTerm, setSearchTerm] = useState("");
+
+  // Filter participants based on search term
+  const filteredParticipants = participants.filter((p) => {
+    const searchLower = searchTerm.toLowerCase();
+    return (
+      p.email.toLowerCase().includes(searchLower) ||
+      p.firstName?.toLowerCase().includes(searchLower) ||
+      p.lastName?.toLowerCase().includes(searchLower) ||
+      `${p.firstName} ${p.lastName}`.toLowerCase().includes(searchLower)
+    );
+  });
+
+  if (!activeChallenge) {
+    return (
+      <s-page heading="Weight Loss Challenge Dashboard">
+        <s-section>
+          <s-paragraph>No active challenge found.</s-paragraph>
+          <s-button>
+            <Link to="/app/admin/challenges">Create a Challenge</Link>
+          </s-button>
+        </s-section>
+      </s-page>
+    );
+  }
 
   return (
-    <s-page heading="Weight Loss Challenge Hub">
-      {/* Quick Actions */}
-      <s-section>
-        <div className="hero-section">
-          <div className="hero-text">
-            <h2 className="hero-title">Manage Your Weight Loss Challenges</h2>
-            <p className="hero-subtitle">
-              Create, track, and celebrate your customers' transformation journeys
-            </p>
-          </div>
-
-          <div className="quick-actions">
-            <Link to="/app/admin/challenges?filter=upcoming" className="action-card upcoming">
-              <div className="action-icon">🚀</div>
-              <div className="action-content">
-                <h3>Upcoming Challenges</h3>
-                <p>View and manage upcoming challenges</p>
-              </div>
-            </Link>
-
-            <Link to="/app/admin/challenges?new=true" className="action-card create">
-              <div className="action-icon">✨</div>
-              <div className="action-content">
-                <h3>Create New Challenge</h3>
-                <p>Start a new transformation journey</p>
-              </div>
-            </Link>
-
-            <Link to="/app/admin/challenges?filter=past" className="action-card past">
-              <div className="action-icon">📊</div>
-              <div className="action-content">
-                <h3>Past Challenges</h3>
-                <p>Review completed challenges</p>
-              </div>
-            </Link>
-
-            <Link to="/app/admin/customize" className="action-card customize">
-              <div className="action-icon">🎨</div>
-              <div className="action-content">
-                <h3>Customize Forms</h3>
-                <p>Design your customer experience</p>
-              </div>
-            </Link>
-          </div>
-        </div>
-      </s-section>
-
-      {/* Active Challenge Overview */}
-      {activeChallenge && (
-        <>
-          <s-section heading={`Active: ${activeChallenge.name}`}>
-            <Link to={`/app/admin/challenge/${activeChallenge.id}`} className="view-active-link">
-              View Full Details →
-            </Link>
-          </s-section>
+    <s-page heading={`Challenge Dashboard: ${activeChallenge.name}`}>
+      <s-button slot="primary-action">
+        <Link to="/app/admin/challenges">Manage Challenges</Link>
+      </s-button>
 
       {/* Stats Cards */}
       <s-section>
@@ -184,8 +165,31 @@ export default function Index() {
         {participants.length === 0 ? (
           <s-paragraph>No participants yet.</s-paragraph>
         ) : (
-          <div style={{ overflowX: "auto" }}>
-            <table className="participants-table">
+          <>
+            {/* Search Bar */}
+            <div className="search-container">
+              <input
+                type="text"
+                placeholder="Search by name or email..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="search-input"
+              />
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm("")}
+                  className="clear-search"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+
+            {filteredParticipants.length === 0 ? (
+              <p className="no-results">No participants match your search.</p>
+            ) : (
+              <div style={{ overflowX: "auto" }}>
+                <table className="participants-table">
               <thead>
                 <tr>
                   <th>Email</th>
@@ -194,6 +198,8 @@ export default function Index() {
                   <th>Start Weight</th>
                   <th>End Weight</th>
                   <th>Weight Loss</th>
+                  <th>Orders</th>
+                  <th>Total Spent</th>
                   <th>Start Date</th>
                   <th>End Date</th>
                   <th>Start Photos</th>
@@ -202,7 +208,7 @@ export default function Index() {
                 </tr>
               </thead>
               <tbody>
-                {participants.map((p) => (
+                {filteredParticipants.map((p) => (
                   <tr key={p.id}>
                     <td>{p.email}</td>
                     <td>{p.firstName && p.lastName ? `${p.firstName} ${p.lastName}` : "-"}</td>
@@ -216,6 +222,8 @@ export default function Index() {
                     <td className={p.weightLoss && parseFloat(p.weightLoss) > 0 ? "weight-loss-positive" : ""}>
                       {p.weightLoss ? `${p.weightLoss} lbs` : "-"}
                     </td>
+                    <td>{p.ordersCount !== null && p.ordersCount !== undefined ? p.ordersCount : "-"}</td>
+                    <td>{p.totalSpent !== null && p.totalSpent !== undefined ? `$${p.totalSpent.toFixed(2)}` : "-"}</td>
                     <td>{p.startDate ? new Date(p.startDate).toLocaleDateString() : "-"}</td>
                     <td>{p.endDate ? new Date(p.endDate).toLocaleDateString() : "-"}</td>
                     <td>
@@ -238,124 +246,55 @@ export default function Index() {
               </tbody>
             </table>
           </div>
+            )}
+          </>
         )}
       </s-section>
 
-        </>
-      )}
-
       <style>{`
-        .hero-section {
-          margin-bottom: 32px;
-        }
-
-        .hero-text {
-          text-align: center;
-          margin-bottom: 32px;
-        }
-
-        .hero-title {
-          font-size: 32px;
-          font-weight: 700;
-          color: #111827;
-          margin-bottom: 8px;
-        }
-
-        .hero-subtitle {
-          font-size: 16px;
-          color: #6b7280;
-        }
-
-        .quick-actions {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-          gap: 20px;
-          margin: 20px 0;
-        }
-
-        .action-card {
+        .search-container {
           display: flex;
+          gap: 12px;
+          margin-bottom: 20px;
           align-items: center;
-          gap: 16px;
-          padding: 24px;
-          background: white;
-          border: 2px solid #e5e7eb;
-          border-radius: 16px;
-          text-decoration: none;
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-          cursor: pointer;
         }
 
-        .action-card:hover {
-          transform: translateY(-4px);
-          box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
-        }
-
-        .action-card.upcoming {
-          border-color: #3b82f6;
-        }
-
-        .action-card.upcoming:hover {
-          background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
-          border-color: #2563eb;
-        }
-
-        .action-card.create {
-          border-color: #8b5cf6;
-        }
-
-        .action-card.create:hover {
-          background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
-          border-color: #7c3aed;
-        }
-
-        .action-card.past {
-          border-color: #6b7280;
-        }
-
-        .action-card.past:hover {
-          background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
-          border-color: #4b5563;
-        }
-
-        .action-card.customize {
-          border-color: #ec4899;
-        }
-
-        .action-card.customize:hover {
-          background: linear-gradient(135deg, #fdf2f8 0%, #fce7f3 100%);
-          border-color: #db2777;
-        }
-
-        .action-icon {
-          font-size: 40px;
-          flex-shrink: 0;
-        }
-
-        .action-content h3 {
-          font-size: 18px;
-          font-weight: 700;
-          color: #111827;
-          margin: 0 0 4px 0;
-        }
-
-        .action-content p {
+        .search-input {
+          flex: 1;
+          padding: 10px 16px;
+          border: 1px solid #e1e3e5;
+          border-radius: 6px;
           font-size: 14px;
+          transition: border-color 0.2s;
+        }
+
+        .search-input:focus {
+          outline: none;
+          border-color: #2563eb;
+          box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .clear-search {
+          padding: 10px 16px;
+          background: #f3f4f6;
+          border: 1px solid #e1e3e5;
+          border-radius: 6px;
+          color: #374151;
+          cursor: pointer;
+          font-size: 14px;
+          font-weight: 500;
+          transition: background 0.2s;
+        }
+
+        .clear-search:hover {
+          background: #e5e7eb;
+        }
+
+        .no-results {
+          text-align: center;
+          padding: 40px 20px;
           color: #6b7280;
-          margin: 0;
-        }
-
-        .view-active-link {
-          display: inline-block;
-          color: #3b82f6;
-          font-weight: 600;
-          text-decoration: none;
-          margin-top: 8px;
-        }
-
-        .view-active-link:hover {
-          color: #2563eb;
-          text-decoration: underline;
+          font-style: italic;
         }
 
         .participants-table {
@@ -438,6 +377,6 @@ export function ErrorBoundary() {
   return boundary.error(useRouteError());
 }
 
-export const headers: HeadersFunction = (headersArgs) => {
+export const headers = (headersArgs: any) => {
   return boundary.headers(headersArgs);
 };
