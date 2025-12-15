@@ -83,7 +83,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
     const target = stagedTargets[0];
 
-    return ({
+    return new Response(JSON.stringify({
       success: true,
       data: {
         uploadUrl: target.url,
@@ -91,17 +91,14 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         publicUrl: target.resourceUrl, // Will be replaced with actual URL after upload
         parameters: target.parameters,
       },
-    });
+    }), { status: 200, headers: { "Content-Type": "application/json" } });
 
   } catch (error) {
     console.error("Error generating presigned URL:", error);
-    return (
-      {
-        success: false,
-        error: error instanceof Error ? error.message : "Failed to generate upload URL"
-      },
-      { status: 500 }
-    );
+    return new Response(JSON.stringify({
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to generate upload URL"
+    }), { status: 500, headers: { "Content-Type": "application/json" } });
   }
 };
 
