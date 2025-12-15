@@ -28,6 +28,8 @@ model Session {
   accountOwner  Boolean   @default(false)
   locale        String?
   collaborator  Boolean?  @default(false)
+
+  @@map("session")
   emailVerified Boolean?  @default(false)
 }
 

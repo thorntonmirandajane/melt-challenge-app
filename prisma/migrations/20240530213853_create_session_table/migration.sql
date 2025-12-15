@@ -1,5 +1,5 @@
 -- CreateTable
-CREATE TABLE "Session" (
+CREATE TABLE "session" (
     "id" TEXT NOT NULL,
     "shop" TEXT NOT NULL,
     "state" TEXT NOT NULL,
@@ -16,5 +16,5 @@ CREATE TABLE "Session" (
     "collaborator" BOOLEAN DEFAULT false,
     "emailVerified" BOOLEAN DEFAULT false,
 
-    CONSTRAINT "Session_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "session_pkey" PRIMARY KEY ("id")
 );
