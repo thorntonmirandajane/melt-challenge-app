@@ -14,8 +14,8 @@
       {% if block.settings.app_url != blank %}
         {% assign app_base_url = block.settings.app_url %}
       {% else %}
-        {% comment %} Default to the shop's app proxy URL - you'll need to configure this in production {% endcomment %}
-        {% assign app_base_url = 'https://noncotyledonal-kenley-motivative.ngrok-free.dev' %}
+        {% comment %} Default to the production Render URL {% endcomment %}
+        {% assign app_base_url = 'https://melt-challenge-app.onrender.com' %}
       {% endif %}
       <iframe
         id="challenge-iframe"
