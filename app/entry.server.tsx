@@ -16,19 +16,23 @@ export default async function handleRequest(
 ) {
   addDocumentResponseHeaders(request, responseHeaders);
 
-  // Allow iframe embedding from Shopify storefronts
-  // Remove restrictive X-Frame-Options header if present
+  // CRITICAL: Remove ALL frame-ancestors restrictions set by Shopify
+  // This allows the app to be embedded in Shopify admin
   responseHeaders.delete("X-Frame-Options");
 
-  // Set Content-Security-Policy to allow framing from Shopify domains
+  // Get the current CSP and completely remove any frame-ancestors directive
   const csp = responseHeaders.get("Content-Security-Policy");
   if (csp) {
-    // If CSP exists, modify it to allow framing from Shopify
-    const newCsp = csp.replace(/frame-ancestors[^;]*/g, "").trim();
-    responseHeaders.set("Content-Security-Policy", `${newCsp}; frame-ancestors 'self' https://*.myshopify.com http://*.myshopify.com`);
-  } else {
-    // If no CSP, add one that allows Shopify framing
-    responseHeaders.set("Content-Security-Policy", "frame-ancestors 'self' https://*.myshopify.com http://*.myshopify.com");
+    // Remove frame-ancestors directive entirely from CSP
+    let newCsp = csp.replace(/frame-ancestors[^;]*;?/g, "").trim();
+    // Remove trailing semicolon if present
+    newCsp = newCsp.replace(/;+$/, "");
+    // Set the CSP without any frame-ancestors (allowing all frames)
+    if (newCsp) {
+      responseHeaders.set("Content-Security-Policy", newCsp);
+    } else {
+      responseHeaders.delete("Content-Security-Policy");
+    }
   }
 
   // Also set Access-Control-Allow-Origin for CORS
