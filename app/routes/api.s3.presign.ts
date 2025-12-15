@@ -1,5 +1,5 @@
 import { type ActionFunctionArgs } from "react-router";
-import { unauthenticated } from "../shopify.server";
+import { authenticate, unauthenticated } from "../shopify.server";
 import { createStagedUpload, validateUploadParams } from "../utils/shopify-files.server";
 
 /**
@@ -41,8 +41,18 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     // Get shop from environment if not provided
     const shopDomain = shop || process.env.SHOPIFY_SHOP_DOMAIN || "bowmar-nutrition-dev-store.myshopify.com";
 
-    // Get Shopify admin API using unauthenticated context (no session required)
-    const { admin } = await unauthenticated.admin(shopDomain);
+    // IMPORTANT: We need to use authenticate.admin() to get proper scoped access
+    // This requires the request to come from within the Shopify admin embedded app context
+    let admin;
+    try {
+      const auth = await authenticate.admin(request);
+      admin = auth.admin;
+    } catch (authError) {
+      // If authentication fails, try to get a stored offline session
+      // This allows uploads to work even when not in the Shopify admin context
+      const { admin: unauthAdmin } = await unauthenticated.admin(shopDomain);
+      admin = unauthAdmin;
+    }
 
     // Validate parameters
     const validation = validateUploadParams({ fileName, fileType, fileSize });
