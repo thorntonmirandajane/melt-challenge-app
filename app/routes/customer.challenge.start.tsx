@@ -280,6 +280,7 @@ export default function ChallengeStart() {
       const results = await uploadPhotos(photoUploads, submissionId);
 
       setUploadedPhotos(results);
+      setUploading(false); // Photos uploaded, now submitting form
 
       // Submit form with photo data using React Router's submit
       const form = e.target as HTMLFormElement;
@@ -289,7 +290,11 @@ export default function ChallengeStart() {
       submit(formData, { method: "post" });
     } catch (error) {
       console.error("Upload error:", error);
-      setErrors({ photos: "Failed to upload photos. Please try again." });
+      console.error("Error details:", {
+        message: error instanceof Error ? error.message : "Unknown error",
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+      setErrors({ photos: `Failed to upload photos: ${error instanceof Error ? error.message : "Unknown error"}` });
       setUploading(false);
     }
   };
