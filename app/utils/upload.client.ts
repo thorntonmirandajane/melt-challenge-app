@@ -1,5 +1,5 @@
 /**
- * Client-side utilities for uploading photos to AWS S3
+ * Client-side utilities for uploading photos to Cloudinary
  */
 
 // ============================================
@@ -35,13 +35,13 @@ export interface UploadResult {
 // ============================================
 
 /**
- * Uploads a single photo to S3 using presigned URL
+ * Uploads a single photo to Cloudinary using signed upload
  *
  * @param file - File to upload
  * @param submissionId - Submission ID (can be temporary UUID)
  * @param order - Photo order (1, 2, or 3)
  * @param onProgress - Optional progress callback
- * @returns Upload result with S3 metadata
+ * @returns Upload result with Cloudinary metadata
  */
 export async function uploadPhoto(
   file: File,
@@ -51,7 +51,7 @@ export async function uploadPhoto(
   orientation?: 'FRONT' | 'SIDE' | 'BACK'
 ): Promise<UploadResult> {
 
-  // Step 1: Get presigned URL from our API
+  // Step 1: Get upload signature from our API
   const presignResponse = await fetch("/api/s3/presign", {
     method: "POST",
     headers: {
@@ -68,15 +68,24 @@ export async function uploadPhoto(
 
   if (!presignResponse.ok) {
     const error = await presignResponse.json();
-    throw new Error(error.error || "Failed to get upload URL");
+    throw new Error(error.error || "Failed to get upload signature");
   }
 
   const { data } = await presignResponse.json();
-  const { uploadUrl, key, publicUrl } = data;
+  const { uploadUrl, folder, publicId, timestamp, signature, apiKey } = data;
 
-  // Step 2: Upload file directly to S3 using presigned URL with PUT request
+  // Step 2: Upload file to Cloudinary using FormData
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
+    const formData = new FormData();
+
+    // Add Cloudinary required fields
+    formData.append("file", file);
+    formData.append("folder", folder);
+    formData.append("public_id", publicId);
+    formData.append("timestamp", timestamp.toString());
+    formData.append("signature", signature);
+    formData.append("api_key", apiKey);
 
     // Track upload progress
     xhr.upload.addEventListener("progress", (event) => {
@@ -88,16 +97,25 @@ export async function uploadPhoto(
 
     // Handle completion
     xhr.addEventListener("load", () => {
-      if (xhr.status === 200 || xhr.status === 201 || xhr.status === 204) {
-        resolve({
-          order,
-          key,
-          publicUrl,
-          fileName: file.name,
-          fileSize: file.size,
-          mimeType: file.type,
-          orientation, // Include orientation in result
-        });
+      if (xhr.status === 200) {
+        try {
+          const response = JSON.parse(xhr.responseText);
+          // Cloudinary returns secure_url for the uploaded image
+          const publicUrl = response.secure_url || response.url;
+          const key = `${folder}/${publicId}`;
+
+          resolve({
+            order,
+            key,
+            publicUrl,
+            fileName: file.name,
+            fileSize: file.size,
+            mimeType: file.type,
+            orientation, // Include orientation in result
+          });
+        } catch (error) {
+          reject(new Error("Failed to parse upload response"));
+        }
       } else {
         reject(new Error(`Upload failed with status ${xhr.status}`));
       }
@@ -112,10 +130,9 @@ export async function uploadPhoto(
       reject(new Error("Upload was aborted"));
     });
 
-    // Send request with PUT method (S3 standard)
-    xhr.open("PUT", uploadUrl);
-    xhr.setRequestHeader("Content-Type", file.type);
-    xhr.send(file);
+    // Send request with POST method (Cloudinary standard)
+    xhr.open("POST", uploadUrl);
+    xhr.send(formData);
   });
 }
 

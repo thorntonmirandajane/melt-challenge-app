@@ -1,8 +1,8 @@
 import { type ActionFunctionArgs } from "react-router";
-import { generatePresignedUrl, validateUploadParams } from "../utils/s3.server";
+import { generateCloudinaryUpload, validateUploadParams } from "../utils/cloudinary.server";
 
 /**
- * API Route: Generate presigned AWS S3 URLs for photo uploads
+ * API Route: Generate Cloudinary upload signature for photo uploads
  *
  * POST /api/s3/presign
  *
@@ -20,8 +20,11 @@ import { generatePresignedUrl, validateUploadParams } from "../utils/s3.server";
  *   success: true;
  *   data: {
  *     uploadUrl: string;
- *     key: string;
- *     publicUrl: string;
+ *     folder: string;
+ *     publicId: string;
+ *     timestamp: number;
+ *     signature: string;
+ *     apiKey: string;
  *   }
  * }
  */
@@ -61,8 +64,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       );
     }
 
-    // Generate presigned URL for S3 upload
-    const result = await generatePresignedUrl({
+    // Generate Cloudinary upload signature
+    const result = await generateCloudinaryUpload({
       fileName,
       fileType,
       fileSize,
@@ -75,8 +78,11 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         success: true,
         data: {
           uploadUrl: result.uploadUrl,
-          key: result.key,
-          publicUrl: result.publicUrl,
+          folder: result.folder,
+          publicId: result.publicId,
+          timestamp: result.timestamp,
+          signature: result.signature,
+          apiKey: result.apiKey,
         },
       }),
       { status: 200, headers: { "Content-Type": "application/json" } }
