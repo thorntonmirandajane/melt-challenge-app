@@ -89,10 +89,16 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     );
   } catch (error) {
     console.error("Error generating presigned URL:", error);
+    console.error("Error details:", {
+      message: error instanceof Error ? error.message : "Unknown error",
+      stack: error instanceof Error ? error.stack : undefined,
+      cloudinaryConfigured: !!(process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET),
+    });
     return new Response(
       JSON.stringify({
         success: false,
         error: error instanceof Error ? error.message : "Failed to generate upload URL",
+        details: error instanceof Error ? error.stack : undefined,
       }),
       { status: 500, headers: { "Content-Type": "application/json" } }
     );
