@@ -6,19 +6,23 @@ import prisma from "../db.server";
 // ============================================
 
 /**
- * Gets the currently active challenge for a shop
+ * Gets the currently active or upcoming challenge for a shop
  *
  * Active means:
- * - startDate <= today <= endDate
+ * - startDate <= today <= endDate (currently running)
+ * - OR startDate > today (upcoming)
  * - isActive = true
  *
+ * This allows participants to join upcoming challenges before they start
+ *
  * @param shop - Shop domain
- * @returns Active challenge or null
+ * @returns Active or upcoming challenge or null
  */
 export async function getActiveChallenge(shop: string): Promise<Challenge | null> {
   const now = new Date();
 
-  const challenge = await prisma.challenge.findFirst({
+  // Try to find active (ongoing) challenge first
+  let challenge = await prisma.challenge.findFirst({
     where: {
       shop,
       isActive: true,
@@ -33,6 +37,22 @@ export async function getActiveChallenge(shop: string): Promise<Challenge | null
       startDate: "desc",
     },
   });
+
+  // If no active challenge, find upcoming challenge
+  if (!challenge) {
+    challenge = await prisma.challenge.findFirst({
+      where: {
+        shop,
+        isActive: true,
+        startDate: {
+          gt: now,
+        },
+      },
+      orderBy: {
+        startDate: "asc",
+      },
+    });
+  }
 
   return challenge;
 }
