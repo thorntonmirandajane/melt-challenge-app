@@ -1,6 +1,6 @@
 import { type LoaderFunctionArgs, type ActionFunctionArgs, redirect } from "react-router";
 import { useState } from "react";
-import { Form, useLoaderData, useNavigation } from "react-router";
+import { Form, useLoaderData, useNavigation, useSubmit } from "react-router";
 import { requireCustomer } from "../utils/customer-auth.server";
 import { canStartChallenge, getOrCreateParticipant } from "../utils/challenge.server";
 import { validateChallengeForm } from "../utils/validation";
@@ -205,6 +205,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 export default function ChallengeStart() {
   const { customer } = useLoaderData<typeof loader>();
   const navigation = useNavigation();
+  const submit = useSubmit();
   const isSubmitting = navigation.state === "submitting";
 
   const [email, setEmail] = useState(customer?.email || "");
@@ -280,12 +281,12 @@ export default function ChallengeStart() {
 
       setUploadedPhotos(results);
 
-      // Submit form with photo data
+      // Submit form with photo data using React Router's submit
       const form = e.target as HTMLFormElement;
       const formData = new FormData(form);
       formData.set("photos", JSON.stringify(results));
 
-      form.submit();
+      submit(formData, { method: "post" });
     } catch (error) {
       console.error("Upload error:", error);
       setErrors({ photos: "Failed to upload photos. Please try again." });
