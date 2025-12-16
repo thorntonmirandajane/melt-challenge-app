@@ -97,11 +97,21 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     take: 10,
   });
 
-  const totalSubmissions = await prisma.submission.count({
+  const startFormsCount = await prisma.submission.count({
     where: {
       participant: {
         challengeId: currentChallenge.id,
       },
+      type: "START",
+    },
+  });
+
+  const endFormsCount = await prisma.submission.count({
+    where: {
+      participant: {
+        challengeId: currentChallenge.id,
+      },
+      type: "END",
     },
   });
 
@@ -128,10 +138,8 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     },
     stats: {
       total: participants.length,
-      notStarted: participants.filter(p => p.status === "NOT_STARTED").length,
-      inProgress: participants.filter(p => p.status === "IN_PROGRESS").length,
-      completed: participants.filter(p => p.status === "COMPLETED").length,
-      totalSubmissions,
+      startFormsSubmitted: startFormsCount,
+      endFormsSubmitted: endFormsCount,
     },
   };
 };
@@ -254,29 +262,15 @@ export default function Index() {
 
           <s-card>
             <s-stack direction="block" gap="tight">
-              <s-text variant="heading-sm">Not Started</s-text>
-              <s-text variant="heading-2xl">{stats.notStarted}</s-text>
+              <s-text variant="heading-sm">Start Forms Submitted</s-text>
+              <s-text variant="heading-2xl">{stats.startFormsSubmitted}</s-text>
             </s-stack>
           </s-card>
 
           <s-card>
             <s-stack direction="block" gap="tight">
-              <s-text variant="heading-sm">In Progress</s-text>
-              <s-text variant="heading-2xl">{stats.inProgress}</s-text>
-            </s-stack>
-          </s-card>
-
-          <s-card>
-            <s-stack direction="block" gap="tight">
-              <s-text variant="heading-sm">Completed</s-text>
-              <s-text variant="heading-2xl">{stats.completed}</s-text>
-            </s-stack>
-          </s-card>
-
-          <s-card>
-            <s-stack direction="block" gap="tight">
-              <s-text variant="heading-sm">Total Submissions</s-text>
-              <s-text variant="heading-2xl">{stats.totalSubmissions}</s-text>
+              <s-text variant="heading-sm">End Forms Submitted</s-text>
+              <s-text variant="heading-2xl">{stats.endFormsSubmitted}</s-text>
             </s-stack>
           </s-card>
         </s-stack>

@@ -38,7 +38,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const firstNameInput = formData.get("firstName") as string;
   const lastNameInput = formData.get("lastName") as string;
   const weight = formData.get("weight");
-  const notes = formData.get("notes");
   const photosJson = formData.get("photos"); // JSON string of photo data
 
   // Validate email
@@ -60,7 +59,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   // Validate weight
   const validation = validateChallengeForm({
     weight: weight as string,
-    notes: notes as string || undefined,
   });
 
   if (!validation.valid) {
@@ -156,25 +154,23 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         shop: shop,
         type: "START",
         weight: parseFloat(weight as string),
-        notes: notes as string || null,
       },
     });
 
-    // Create photo records with orientation
+    // Create photo records with orientation (Cloudinary)
     await Promise.all(
       photos.map((photo) =>
         prisma.photo.create({
           data: {
             submissionId: submission.id,
             shop: shop,
-            s3Key: photo.key,
-            s3Bucket: process.env.AWS_S3_BUCKET || "",
-            s3Url: photo.publicUrl,
+            shopifyUrl: photo.publicUrl, // Cloudinary URL
             fileName: photo.fileName,
             fileSize: photo.fileSize,
             mimeType: photo.mimeType,
             order: photo.order,
             orientation: photo.orientation as "FRONT" | "SIDE" | "BACK",
+            uploadStatus: "UPLOADED",
           },
         })
       )
@@ -215,7 +211,6 @@ export default function ChallengeStart() {
   const [firstName, setFirstName] = useState(customer?.firstName || "");
   const [lastName, setLastName] = useState(customer?.lastName || "");
   const [weight, setWeight] = useState("");
-  const [notes, setNotes] = useState("");
   const [frontPhoto, setFrontPhoto] = useState<File | null>(null);
   const [sidePhoto, setSidePhoto] = useState<File | null>(null);
   const [backPhoto, setBackPhoto] = useState<File | null>(null);
@@ -439,22 +434,6 @@ export default function ChallengeStart() {
             <span className="error">{errors.photos}</span>
           </div>
         )}
-
-        {/* Notes */}
-        <div className="form-group">
-          <label htmlFor="notes">Notes (optional)</label>
-          <textarea
-            id="notes"
-            name="notes"
-            rows={4}
-            maxLength={500}
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder="Share your goals, motivation, or any other thoughts..."
-            disabled={isSubmitting || uploading}
-          />
-          <span className="char-count">{notes.length}/500</span>
-        </div>
 
         {/* Submit Button */}
         <button
