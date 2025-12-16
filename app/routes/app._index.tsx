@@ -5,27 +5,61 @@ import type {
 import { Link, useLoaderData, useRouteError } from "react-router";
 import { authenticate } from "../shopify.server";
 import { boundary } from "@shopify/shopify-app-react-router/server";
-import { getActiveChallenge } from "../utils/challenge.server";
 import prisma from "../db.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
   const shop = session.shop;
 
-  // Get active challenge
-  const activeChallenge = await getActiveChallenge(shop);
+  // Get current or upcoming challenge
+  const now = new Date();
 
-  if (!activeChallenge) {
+  // Try to find active (ongoing) challenge first
+  let currentChallenge = await prisma.challenge.findFirst({
+    where: {
+      shop,
+      isActive: true,
+      startDate: { lte: now },
+      endDate: { gte: now },
+    },
+    orderBy: {
+      startDate: "desc",
+    },
+  });
+
+  // If no active challenge, find upcoming challenge
+  if (!currentChallenge) {
+    currentChallenge = await prisma.challenge.findFirst({
+      where: {
+        shop,
+        isActive: true,
+        startDate: { gt: now },
+      },
+      orderBy: {
+        startDate: "asc",
+      },
+    });
+  }
+
+  if (!currentChallenge) {
     return {
       participants: [],
-      activeChallenge: null,
+      submissions: [],
+      currentChallenge: null,
+      stats: {
+        total: 0,
+        notStarted: 0,
+        inProgress: 0,
+        completed: 0,
+        totalSubmissions: 0,
+      },
     };
   }
 
-  // Get all participants for the active challenge with their submissions
+  // Get all participants for the current challenge
   const participants = await prisma.participant.findMany({
     where: {
-      challengeId: activeChallenge.id,
+      challengeId: currentChallenge.id,
     },
     include: {
       submissions: {
@@ -37,7 +71,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
           },
         },
         orderBy: {
-          submittedAt: "asc",
+          submittedAt: "desc",
         },
       },
     },
@@ -46,105 +80,167 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
     },
   });
 
-  // Transform data for table display
-  const tableData = participants.map((participant) => {
-    const startSubmission = participant.submissions.find(s => s.type === "START");
-    const endSubmission = participant.submissions.find(s => s.type === "END");
+  // Get recent submissions for display
+  const allSubmissions = await prisma.submission.findMany({
+    where: {
+      participant: {
+        challengeId: currentChallenge.id,
+      },
+    },
+    include: {
+      participant: true,
+      photos: true,
+    },
+    orderBy: {
+      submittedAt: "desc",
+    },
+    take: 10,
+  });
 
-    return {
-      id: participant.id,
-      email: participant.email,
-      firstName: participant.firstName,
-      lastName: participant.lastName,
-      status: participant.status,
-      startWeight: participant.startWeight,
-      endWeight: participant.endWeight,
-      weightLoss: participant.startWeight && participant.endWeight
-        ? (participant.startWeight - participant.endWeight).toFixed(1)
-        : null,
-      startDate: startSubmission?.submittedAt,
-      endDate: endSubmission?.submittedAt,
-      startPhotosCount: startSubmission?.photos.length || 0,
-      endPhotosCount: endSubmission?.photos.length || 0,
-    };
+  const totalSubmissions = await prisma.submission.count({
+    where: {
+      participant: {
+        challengeId: currentChallenge.id,
+      },
+    },
   });
 
   return {
-    participants: tableData,
-    activeChallenge: {
-      id: activeChallenge.id,
-      name: activeChallenge.name,
-      startDate: activeChallenge.startDate,
-      endDate: activeChallenge.endDate,
+    participants,
+    submissions: allSubmissions.map(s => ({
+      id: s.id,
+      type: s.type,
+      weight: s.weight,
+      submittedAt: s.submittedAt,
+      participantName: s.participant.firstName && s.participant.lastName
+        ? `${s.participant.firstName} ${s.participant.lastName}`
+        : s.participant.email,
+      participantEmail: s.participant.email,
+      participantId: s.participant.id,
+      photoCount: s.photos.length,
+    })),
+    currentChallenge: {
+      id: currentChallenge.id,
+      name: currentChallenge.name,
+      description: currentChallenge.description,
+      startDate: currentChallenge.startDate,
+      endDate: currentChallenge.endDate,
     },
     stats: {
       total: participants.length,
       notStarted: participants.filter(p => p.status === "NOT_STARTED").length,
       inProgress: participants.filter(p => p.status === "IN_PROGRESS").length,
       completed: participants.filter(p => p.status === "COMPLETED").length,
+      totalSubmissions,
     },
   };
 };
 
 export default function Index() {
-  const { participants, activeChallenge, stats } = useLoaderData<typeof loader>();
+  const { participants, submissions, currentChallenge, stats } = useLoaderData<typeof loader>();
+
+  if (!currentChallenge) {
+    return (
+      <s-page heading="Dashboard">
+        <s-section>
+          <div className="empty-state">
+            <div className="empty-icon">🚀</div>
+            <h2>No Active Challenge</h2>
+            <p>Create your first challenge to get started!</p>
+            <Link to="/app/admin/challenges?new=true" className="create-button">
+              Create New Challenge
+            </Link>
+          </div>
+        </s-section>
+
+        <style>{`
+          .empty-state {
+            text-align: center;
+            padding: 80px 20px;
+          }
+
+          .empty-icon {
+            font-size: 80px;
+            margin-bottom: 24px;
+          }
+
+          .empty-state h2 {
+            font-size: 24px;
+            font-weight: 700;
+            color: #111827;
+            margin-bottom: 12px;
+          }
+
+          .empty-state p {
+            font-size: 16px;
+            color: #6b7280;
+            margin-bottom: 32px;
+          }
+
+          .create-button {
+            display: inline-block;
+            padding: 14px 28px;
+            background: #8b5cf6;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: background 0.2s;
+          }
+
+          .create-button:hover {
+            background: #7c3aed;
+          }
+        `}</style>
+      </s-page>
+    );
+  }
+
+  const startDate = new Date(currentChallenge.startDate);
+  const endDate = new Date(currentChallenge.endDate);
+  const now = new Date();
+  const isUpcoming = startDate > now;
+  const isActive = startDate <= now && endDate >= now;
 
   return (
-    <s-page heading="Weight Loss Challenge Hub">
-      {/* Quick Actions */}
+    <s-page heading="Dashboard">
+      {/* Action Buttons */}
       <s-section>
-        <div className="hero-section">
-          <div className="hero-text">
-            <h2 className="hero-title">Manage Your Weight Loss Challenges</h2>
-            <p className="hero-subtitle">
-              Create, track, and celebrate your customers' transformation journeys
-            </p>
-          </div>
+        <div className="action-buttons">
+          <Link to="/app/admin/challenges?new=true" className="btn btn-primary">
+            + Create New Challenge
+          </Link>
+          <Link to="/app/admin/challenges?filter=past" className="btn btn-secondary">
+            View Past Challenges
+          </Link>
+        </div>
+      </s-section>
 
-          <div className="quick-actions">
-            <Link to="/app/admin/challenges?filter=upcoming" className="action-card upcoming">
-              <div className="action-icon">🚀</div>
-              <div className="action-content">
-                <h3>Upcoming Challenges</h3>
-                <p>View and manage upcoming challenges</p>
+      {/* Current Challenge Card */}
+      <s-section>
+        <div className="challenge-card">
+          <div className="challenge-header">
+            <div>
+              <div className="challenge-status">
+                {isUpcoming && <span className="status-badge upcoming">Upcoming</span>}
+                {isActive && <span className="status-badge active">Active</span>}
               </div>
-            </Link>
-
-            <Link to="/app/admin/challenges?new=true" className="action-card create">
-              <div className="action-icon">✨</div>
-              <div className="action-content">
-                <h3>Create New Challenge</h3>
-                <p>Start a new transformation journey</p>
+              <h2 className="challenge-name">{currentChallenge.name}</h2>
+              {currentChallenge.description && (
+                <p className="challenge-description">{currentChallenge.description}</p>
+              )}
+              <div className="challenge-dates">
+                <span className="date-label">Start:</span> {startDate.toLocaleDateString()}
+                <span className="date-separator">→</span>
+                <span className="date-label">End:</span> {endDate.toLocaleDateString()}
               </div>
-            </Link>
-
-            <Link to="/app/admin/challenges?filter=past" className="action-card past">
-              <div className="action-icon">📊</div>
-              <div className="action-content">
-                <h3>Past Challenges</h3>
-                <p>Review completed challenges</p>
-              </div>
-            </Link>
-
-            <Link to="/app/admin/customize" className="action-card customize">
-              <div className="action-icon">🎨</div>
-              <div className="action-content">
-                <h3>Customize Forms</h3>
-                <p>Design your customer experience</p>
-              </div>
+            </div>
+            <Link to={`/app/admin/challenge/${currentChallenge.id}`} className="view-details-btn">
+              View Full Details →
             </Link>
           </div>
         </div>
       </s-section>
-
-      {/* Active Challenge Overview */}
-      {activeChallenge && (
-        <>
-          <s-section heading={`Active: ${activeChallenge.name}`}>
-            <Link to={`/app/admin/challenge/${activeChallenge.id}`} className="view-active-link">
-              View Full Details →
-            </Link>
-          </s-section>
 
       {/* Stats Cards */}
       <s-section>
@@ -176,61 +272,54 @@ export default function Index() {
               <s-text variant="heading-2xl">{stats.completed}</s-text>
             </s-stack>
           </s-card>
+
+          <s-card>
+            <s-stack direction="block" gap="tight">
+              <s-text variant="heading-sm">Total Submissions</s-text>
+              <s-text variant="heading-2xl">{stats.totalSubmissions}</s-text>
+            </s-stack>
+          </s-card>
         </s-stack>
       </s-section>
 
-      {/* Participants Table */}
-      <s-section heading="Participants">
-        {participants.length === 0 ? (
-          <s-paragraph>No participants yet.</s-paragraph>
+      {/* Recent Submissions */}
+      <s-section heading="Recent Submissions">
+        {submissions.length === 0 ? (
+          <s-paragraph>No submissions yet.</s-paragraph>
         ) : (
           <div style={{ overflowX: "auto" }}>
-            <table className="participants-table">
+            <table className="submissions-table">
               <thead>
                 <tr>
+                  <th>Participant</th>
                   <th>Email</th>
-                  <th>Name</th>
-                  <th>Status</th>
-                  <th>Start Weight</th>
-                  <th>End Weight</th>
-                  <th>Weight Loss</th>
-                  <th>Start Date</th>
-                  <th>End Date</th>
-                  <th>Start Photos</th>
-                  <th>End Photos</th>
+                  <th>Type</th>
+                  <th>Weight</th>
+                  <th>Photos</th>
+                  <th>Submitted</th>
                   <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {participants.map((p) => (
-                  <tr key={p.id}>
-                    <td>{p.email}</td>
-                    <td>{p.firstName && p.lastName ? `${p.firstName} ${p.lastName}` : "-"}</td>
+                {submissions.map((s) => (
+                  <tr key={s.id}>
+                    <td>{s.participantName}</td>
+                    <td>{s.participantEmail}</td>
                     <td>
-                      <span className={`status-badge status-${p.status.toLowerCase()}`}>
-                        {p.status.replace("_", " ")}
+                      <span className={`type-badge type-${s.type.toLowerCase()}`}>
+                        {s.type}
                       </span>
                     </td>
-                    <td>{p.startWeight ? `${p.startWeight} lbs` : "-"}</td>
-                    <td>{p.endWeight ? `${p.endWeight} lbs` : "-"}</td>
-                    <td className={p.weightLoss && parseFloat(p.weightLoss) > 0 ? "weight-loss-positive" : ""}>
-                      {p.weightLoss ? `${p.weightLoss} lbs` : "-"}
-                    </td>
-                    <td>{p.startDate ? new Date(p.startDate).toLocaleDateString() : "-"}</td>
-                    <td>{p.endDate ? new Date(p.endDate).toLocaleDateString() : "-"}</td>
+                    <td>{s.weight} lbs</td>
                     <td>
                       <span className="photo-count">
-                        {p.startPhotosCount > 0 ? `${p.startPhotosCount} photos` : "-"}
+                        {s.photoCount} photos
                       </span>
                     </td>
+                    <td>{new Date(s.submittedAt).toLocaleDateString()}</td>
                     <td>
-                      <span className="photo-count">
-                        {p.endPhotosCount > 0 ? `${p.endPhotosCount} photos` : "-"}
-                      </span>
-                    </td>
-                    <td>
-                      <Link to={`/app/admin/participant/${p.id}`} className="view-link">
-                        View Details
+                      <Link to={`/app/admin/participant/${s.participantId}`} className="view-link">
+                        View
                       </Link>
                     </td>
                   </tr>
@@ -241,124 +330,121 @@ export default function Index() {
         )}
       </s-section>
 
-        </>
-      )}
-
       <style>{`
-        .hero-section {
-          margin-bottom: 32px;
+        .action-buttons {
+          display: flex;
+          gap: 12px;
+          margin-bottom: 24px;
         }
 
-        .hero-text {
-          text-align: center;
-          margin-bottom: 32px;
+        .btn {
+          display: inline-block;
+          padding: 10px 20px;
+          border-radius: 6px;
+          text-decoration: none;
+          font-weight: 600;
+          font-size: 14px;
+          transition: all 0.2s;
         }
 
-        .hero-title {
-          font-size: 32px;
-          font-weight: 700;
-          color: #111827;
+        .btn-primary {
+          background: #8b5cf6;
+          color: white;
+        }
+
+        .btn-primary:hover {
+          background: #7c3aed;
+        }
+
+        .btn-secondary {
+          background: white;
+          color: #6b7280;
+          border: 1px solid #e5e7eb;
+        }
+
+        .btn-secondary:hover {
+          background: #f9fafb;
+          border-color: #d1d5db;
+        }
+
+        .challenge-card {
+          background: white;
+          border: 2px solid #e5e7eb;
+          border-radius: 12px;
+          padding: 24px;
+          margin-bottom: 24px;
+        }
+
+        .challenge-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: start;
+        }
+
+        .challenge-status {
           margin-bottom: 8px;
         }
 
-        .hero-subtitle {
-          font-size: 16px;
-          color: #6b7280;
+        .status-badge {
+          display: inline-block;
+          padding: 4px 12px;
+          border-radius: 12px;
+          font-size: 12px;
+          font-weight: 600;
+          text-transform: uppercase;
         }
 
-        .quick-actions {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-          gap: 20px;
-          margin: 20px 0;
+        .status-badge.upcoming {
+          background: #dbeafe;
+          color: #1e40af;
         }
 
-        .action-card {
-          display: flex;
-          align-items: center;
-          gap: 16px;
-          padding: 24px;
-          background: white;
-          border: 2px solid #e5e7eb;
-          border-radius: 16px;
-          text-decoration: none;
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-          cursor: pointer;
+        .status-badge.active {
+          background: #d1fae5;
+          color: #065f46;
         }
 
-        .action-card:hover {
-          transform: translateY(-4px);
-          box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
-        }
-
-        .action-card.upcoming {
-          border-color: #3b82f6;
-        }
-
-        .action-card.upcoming:hover {
-          background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
-          border-color: #2563eb;
-        }
-
-        .action-card.create {
-          border-color: #8b5cf6;
-        }
-
-        .action-card.create:hover {
-          background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
-          border-color: #7c3aed;
-        }
-
-        .action-card.past {
-          border-color: #6b7280;
-        }
-
-        .action-card.past:hover {
-          background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
-          border-color: #4b5563;
-        }
-
-        .action-card.customize {
-          border-color: #ec4899;
-        }
-
-        .action-card.customize:hover {
-          background: linear-gradient(135deg, #fdf2f8 0%, #fce7f3 100%);
-          border-color: #db2777;
-        }
-
-        .action-icon {
-          font-size: 40px;
-          flex-shrink: 0;
-        }
-
-        .action-content h3 {
-          font-size: 18px;
+        .challenge-name {
+          font-size: 24px;
           font-weight: 700;
           color: #111827;
-          margin: 0 0 4px 0;
+          margin: 0 0 8px 0;
         }
 
-        .action-content p {
+        .challenge-description {
           font-size: 14px;
           color: #6b7280;
-          margin: 0;
+          margin: 0 0 12px 0;
         }
 
-        .view-active-link {
+        .challenge-dates {
+          font-size: 14px;
+          color: #6b7280;
+        }
+
+        .date-label {
+          font-weight: 600;
+          color: #111827;
+        }
+
+        .date-separator {
+          margin: 0 8px;
+        }
+
+        .view-details-btn {
           display: inline-block;
           color: #3b82f6;
           font-weight: 600;
           text-decoration: none;
-          margin-top: 8px;
+          font-size: 14px;
         }
 
-        .view-active-link:hover {
+        .view-details-btn:hover {
           color: #2563eb;
           text-decoration: underline;
         }
 
-        .participants-table {
+        .submissions-table {
           width: 100%;
           border-collapse: collapse;
           background: white;
@@ -366,7 +452,7 @@ export default function Index() {
           overflow: hidden;
         }
 
-        .participants-table th {
+        .submissions-table th {
           background: #f6f6f7;
           padding: 12px;
           text-align: left;
@@ -377,42 +463,32 @@ export default function Index() {
           border-bottom: 1px solid #e1e3e5;
         }
 
-        .participants-table td {
+        .submissions-table td {
           padding: 12px;
           border-bottom: 1px solid #e1e3e5;
           font-size: 14px;
         }
 
-        .participants-table tr:hover {
+        .submissions-table tr:hover {
           background: #f9fafb;
         }
 
-        .status-badge {
+        .type-badge {
           display: inline-block;
           padding: 4px 8px;
           border-radius: 4px;
           font-size: 12px;
-          font-weight: 500;
+          font-weight: 600;
         }
 
-        .status-not_started {
-          background: #fef3c7;
-          color: #92400e;
-        }
-
-        .status-in_progress {
+        .type-badge.type-start {
           background: #dbeafe;
           color: #1e40af;
         }
 
-        .status-completed {
-          background: #d1fae5;
-          color: #065f46;
-        }
-
-        .weight-loss-positive {
-          color: #059669;
-          font-weight: 600;
+        .type-badge.type-end {
+          background: #fef3c7;
+          color: #92400e;
         }
 
         .photo-count {
