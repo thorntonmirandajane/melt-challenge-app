@@ -40,8 +40,18 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const weight = formData.get("weight");
   const photosJson = formData.get("photos"); // JSON string of photo data
 
+  // Log all form data received
+  console.log("=== FORM SUBMISSION RECEIVED ===");
+  console.log("Email:", email);
+  console.log("First Name:", firstNameInput);
+  console.log("Last Name:", lastNameInput);
+  console.log("Weight:", weight);
+  console.log("Photos JSON:", photosJson);
+  console.log("All form entries:", Array.from(formData.entries()));
+
   // Validate email
   if (!email) {
+    console.error("VALIDATION FAILED: Email is required");
     return new Response(JSON.stringify({
       success: false,
       errors: { email: "Email is required" },
@@ -50,6 +60,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   // Validate first and last name
   if (!firstNameInput || !lastNameInput) {
+    console.error("VALIDATION FAILED: Name is required", { firstNameInput, lastNameInput });
     return new Response(JSON.stringify({
       success: false,
       errors: { firstName: !firstNameInput ? "First name is required" : "", lastName: !lastNameInput ? "Last name is required" : "" },
@@ -62,6 +73,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   });
 
   if (!validation.valid) {
+    console.error("VALIDATION FAILED: Weight validation", validation.errors);
     return new Response(JSON.stringify({
       success: false,
       errors: validation.errors,
@@ -75,7 +87,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     if (!Array.isArray(photos) || photos.length !== 3) {
       throw new Error("Invalid photos data");
     }
+    console.log("Photos parsed successfully:", photos);
   } catch (error) {
+    console.error("VALIDATION FAILED: Photos parsing error", error);
     return new Response(JSON.stringify({
       success: false,
       errors: { photos: "Invalid photo data. Please upload 3 photos." },
@@ -132,6 +146,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     }
 
     // Get or create participant by email
+    console.log("Getting or creating participant with:", { shop, customerId, email, firstName, lastName });
     const participant = await getOrCreateParticipant(
       shop,
       customerId || `email:${email}`, // Use email as fallback ID
@@ -141,13 +156,16 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     );
 
     if (!participant) {
+      console.error("VALIDATION FAILED: No active challenge found for participant");
       return new Response(JSON.stringify({
         success: false,
         errors: { general: "No active challenge found" },
       }), { status: 400, headers: { "Content-Type": "application/json" } });
     }
+    console.log("Participant retrieved/created:", participant.id);
 
     // Create submission
+    console.log("Creating submission for participant:", participant.id);
     const submission = await prisma.submission.create({
       data: {
         participantId: participant.id,
@@ -156,8 +174,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         weight: parseFloat(weight as string),
       },
     });
+    console.log("Submission created:", submission.id);
 
     // Create photo records with orientation (Cloudinary)
+    console.log("Creating photo records:", photos.length);
     await Promise.all(
       photos.map((photo) =>
         prisma.photo.create({
@@ -175,8 +195,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         })
       )
     );
+    console.log("Photos saved successfully");
 
     // Update participant status and order data
+    console.log("Updating participant status");
     await prisma.participant.update({
       where: { id: participant.id },
       data: {
@@ -187,7 +209,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         totalSpent: totalSpent,
       },
     });
+    console.log("Participant updated successfully");
 
+    console.log("SUCCESS: Redirecting to success page");
     return redirect("/customer/challenge/success?type=start");
   } catch (error) {
     console.error("Error creating start submission:", error);
