@@ -1,5 +1,5 @@
 /**
- * Client-side utilities for uploading photos to S3
+ * Client-side utilities for uploading photos to AWS S3
  */
 
 // ============================================
@@ -72,9 +72,9 @@ export async function uploadPhoto(
   }
 
   const { data } = await presignResponse.json();
-  const { uploadUrl, key, publicUrl, parameters } = data;
+  const { uploadUrl, key, publicUrl } = data;
 
-  // Step 2: Upload file to Shopify using presigned URL and form data
+  // Step 2: Upload file directly to S3 using presigned URL with PUT request
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
 
@@ -112,22 +112,10 @@ export async function uploadPhoto(
       reject(new Error("Upload was aborted"));
     });
 
-    // Build form data with Shopify parameters
-    const formData = new FormData();
-
-    // Add Shopify parameters first
-    if (parameters && Array.isArray(parameters)) {
-      parameters.forEach((param: { name: string; value: string }) => {
-        formData.append(param.name, param.value);
-      });
-    }
-
-    // Add the file last (Shopify requirement)
-    formData.append("file", file);
-
-    // Send request
-    xhr.open("POST", uploadUrl);
-    xhr.send(formData);
+    // Send request with PUT method (S3 standard)
+    xhr.open("PUT", uploadUrl);
+    xhr.setRequestHeader("Content-Type", file.type);
+    xhr.send(file);
   });
 }
 
