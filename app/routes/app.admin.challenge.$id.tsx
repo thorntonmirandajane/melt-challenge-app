@@ -118,6 +118,25 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
   const avgWeightLoss =
     completedParticipants.length > 0 ? totalWeightLoss / completedParticipants.length : 0;
 
+  // Count start and end submissions
+  const startFormsCount = await prisma.submission.count({
+    where: {
+      participant: {
+        challengeId: challenge.id,
+      },
+      type: "START",
+    },
+  });
+
+  const endFormsCount = await prisma.submission.count({
+    where: {
+      participant: {
+        challengeId: challenge.id,
+      },
+      type: "END",
+    },
+  });
+
   return {
     challenge: {
       id: challenge.id,
@@ -130,9 +149,8 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
     participants: participantsWithData,
     stats: {
       total: participantsWithData.length,
-      notStarted: participantsWithData.filter((p) => p.status === "NOT_STARTED").length,
-      inProgress: participantsWithData.filter((p) => p.status === "IN_PROGRESS").length,
-      completed: completedParticipants.length,
+      startFormsSubmitted: startFormsCount,
+      endFormsSubmitted: endFormsCount,
       totalWeightLoss: totalWeightLoss.toFixed(1),
       avgWeightLoss: avgWeightLoss.toFixed(1),
     },
@@ -245,21 +263,15 @@ export default function ChallengeDetail() {
           </div>
 
           <div className="stat-card">
-            <div className="stat-icon">✅</div>
-            <div className="stat-value">{stats.completed}</div>
-            <div className="stat-label">Completed</div>
+            <div className="stat-icon">📝</div>
+            <div className="stat-value">{stats.startFormsSubmitted}</div>
+            <div className="stat-label">Start Forms Submitted</div>
           </div>
 
           <div className="stat-card">
-            <div className="stat-icon">⏳</div>
-            <div className="stat-value">{stats.inProgress}</div>
-            <div className="stat-label">In Progress</div>
-          </div>
-
-          <div className="stat-card">
-            <div className="stat-icon">⭕</div>
-            <div className="stat-value">{stats.notStarted}</div>
-            <div className="stat-label">Not Started</div>
+            <div className="stat-icon">🎯</div>
+            <div className="stat-value">{stats.endFormsSubmitted}</div>
+            <div className="stat-label">End Forms Submitted</div>
           </div>
         </div>
       </s-section>
