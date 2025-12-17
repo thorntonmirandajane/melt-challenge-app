@@ -18,4 +18,4 @@ RUN npx prisma generate
 
 RUN npm run build
 
-CMD ["sh", "-c", "npx prisma migrate deploy && npm run start"]
+CMD ["npm", "run", "docker-start"]
