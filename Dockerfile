@@ -14,11 +14,12 @@ RUN npm cache clean --force
 
 COPY . .
 
+# Copy and set permissions for startup script
+COPY start.sh /app/start.sh
+RUN chmod +x /app/start.sh
+
 RUN npx prisma generate
 
 RUN npm run build
-
-# Create a startup script that runs migrations then starts the app
-RUN echo '#!/bin/sh\nset -e\necho "Running Prisma migrations..."\nnpx prisma migrate deploy\necho "Starting application..."\nexec npm run start' > /app/start.sh && chmod +x /app/start.sh
 
 CMD ["/app/start.sh"]
