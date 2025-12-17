@@ -306,9 +306,12 @@ export default function ChallengeStart() {
       setUploadedPhotos(results);
       setUploading(false); // Photos uploaded, now submitting form
 
-      // Submit form with photo data using React Router's submit
-      const form = e.target as HTMLFormElement;
-      const formData = new FormData(form);
+      // Create FormData and explicitly add all form values
+      const formData = new FormData();
+      formData.set("email", email);
+      formData.set("firstName", firstName);
+      formData.set("lastName", lastName);
+      formData.set("weight", weight);
       formData.set("photos", JSON.stringify(results));
 
       submit(formData, { method: "post" });
