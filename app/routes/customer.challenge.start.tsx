@@ -112,9 +112,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       lastName = customer.lastName;
       shop = customer.shop;
     } catch (error) {
-      // Not logged in - we'll handle this by email only
-      // For now, use a default shop (in production, you'd get this from the request domain)
-      shop = process.env.SHOPIFY_SHOP_DOMAIN || "default-shop.myshopify.com";
+      // Not logged in - try to get shop from session or use bowmar-nutrition-test as default
+      shop = "bowmar-nutrition-test.myshopify.com";
+      console.log("User not logged in, using default shop:", shop);
     }
 
     // Lookup Shopify customer by email to get order data
