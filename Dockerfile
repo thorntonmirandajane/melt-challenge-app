@@ -9,7 +9,8 @@ ENV NODE_ENV=production
 
 COPY package.json package-lock.json* ./
 
-RUN npm ci && npm cache clean --force
+RUN npm ci
+RUN npm cache clean --force
 
 COPY . .
 
