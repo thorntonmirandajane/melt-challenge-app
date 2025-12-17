@@ -57,7 +57,7 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
       notes: startSubmission.notes,
       photos: startSubmission.photos.map(p => ({
         id: p.id,
-        url: p.s3Url,
+        url: p.shopifyUrl,
         order: p.order,
         fileName: p.fileName,
         orientation: p.orientation,
@@ -70,7 +70,7 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
       notes: endSubmission.notes,
       photos: endSubmission.photos.map(p => ({
         id: p.id,
-        url: p.s3Url,
+        url: p.shopifyUrl,
         order: p.order,
         fileName: p.fileName,
         orientation: p.orientation,

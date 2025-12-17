@@ -56,11 +56,6 @@ export default function ChallengeSuccess() {
               <li>Come back when you're ready to complete the challenge</li>
             </ul>
           </div>
-          <div className="actions">
-            <Link to="/customer/challenge/end" className="btn btn-primary">
-              Complete Challenge →
-            </Link>
-          </div>
         </div>
         <style>{styles}</style>
       </div>
