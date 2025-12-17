@@ -373,32 +373,39 @@ export default function ChallengeDetail() {
                     <td className="number-cell">${p.totalSpent.toFixed(2)}</td>
                     <td className="photo-comparison-cell">
                       {(() => {
-                        const startFrontPhoto = p.startPhotos.find(photo => photo.orientation === 'FRONT');
-                        const endFrontPhoto = p.endPhotos.find(photo => photo.orientation === 'FRONT');
+                        const hasAnyPhotos = p.startPhotos.length > 0 || p.endPhotos.length > 0;
 
-                        if (!startFrontPhoto && !endFrontPhoto) {
+                        if (!hasAnyPhotos) {
                           return <span className="no-photos">No photos</span>;
                         }
 
+                        const orientations = ['FRONT', 'SIDE', 'BACK'] as const;
+
                         return (
-                          <div className="photo-comparison-mini">
-                            <div className="mini-photo-container">
-                              <div className="mini-photo-label">Start</div>
-                              {startFrontPhoto?.url ? (
-                                <img src={startFrontPhoto.url} alt="Start" className="mini-photo" />
-                              ) : (
-                                <div className="mini-photo-placeholder">-</div>
-                              )}
-                            </div>
-                            <div className="mini-photo-arrow">→</div>
-                            <div className="mini-photo-container">
-                              <div className="mini-photo-label">End</div>
-                              {endFrontPhoto?.url ? (
-                                <img src={endFrontPhoto.url} alt="End" className="mini-photo" />
-                              ) : (
-                                <div className="mini-photo-placeholder">-</div>
-                              )}
-                            </div>
+                          <div className="photo-comparison-all">
+                            {orientations.map((orientation) => {
+                              const startPhoto = p.startPhotos.find(photo => photo.orientation === orientation);
+                              const endPhoto = p.endPhotos.find(photo => photo.orientation === orientation);
+
+                              return (
+                                <div key={orientation} className="orientation-group">
+                                  <div className="orientation-label">{orientation}</div>
+                                  <div className="photo-pair">
+                                    {startPhoto?.url ? (
+                                      <img src={startPhoto.url} alt={`${orientation} - Start`} className="mini-photo" />
+                                    ) : (
+                                      <div className="mini-photo-placeholder">-</div>
+                                    )}
+                                    <div className="mini-photo-arrow">→</div>
+                                    {endPhoto?.url ? (
+                                      <img src={endPhoto.url} alt={`${orientation} - End`} className="mini-photo" />
+                                    ) : (
+                                      <div className="mini-photo-placeholder">-</div>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })}
                           </div>
                         );
                       })()}
@@ -651,61 +658,68 @@ export default function ChallengeDetail() {
 
         .photo-comparison-cell {
           padding: 8px !important;
+          min-width: 450px;
         }
 
-        .photo-comparison-mini {
+        .photo-comparison-all {
           display: flex;
-          align-items: center;
-          gap: 8px;
-          justify-content: center;
+          gap: 16px;
+          align-items: flex-start;
         }
 
-        .mini-photo-container {
+        .orientation-group {
           display: flex;
           flex-direction: column;
+          gap: 6px;
           align-items: center;
-          gap: 4px;
         }
 
-        .mini-photo-label {
-          font-size: 10px;
-          font-weight: 600;
+        .orientation-label {
+          font-size: 9px;
+          font-weight: 700;
           color: #6b7280;
           text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+
+        .photo-pair {
+          display: flex;
+          align-items: center;
+          gap: 6px;
         }
 
         .mini-photo {
-          width: 60px;
-          height: 80px;
+          width: 45px;
+          height: 60px;
           object-fit: cover;
-          border-radius: 6px;
-          border: 2px solid #e5e7eb;
+          border-radius: 4px;
+          border: 1.5px solid #e5e7eb;
           transition: transform 0.2s, box-shadow 0.2s;
         }
 
         .mini-photo:hover {
-          transform: scale(1.5);
+          transform: scale(2);
           box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
           z-index: 10;
           cursor: pointer;
         }
 
         .mini-photo-placeholder {
-          width: 60px;
-          height: 80px;
-          background: #f3f4f6;
-          border-radius: 6px;
-          border: 2px dashed #d1d5db;
+          width: 45px;
+          height: 60px;
+          background: #f9fafb;
+          border-radius: 4px;
+          border: 1.5px dashed #d1d5db;
           display: flex;
           align-items: center;
           justify-content: center;
-          color: #9ca3af;
+          color: #d1d5db;
           font-weight: 600;
-          font-size: 18px;
+          font-size: 14px;
         }
 
         .mini-photo-arrow {
-          font-size: 20px;
+          font-size: 14px;
           color: #3b82f6;
           font-weight: bold;
         }
@@ -714,6 +728,11 @@ export default function ChallengeDetail() {
           color: #9ca3af;
           font-style: italic;
           font-size: 12px;
+        }
+
+        .table-wrapper {
+          overflow-x: auto;
+          max-width: 100%;
         }
       `}</style>
     </s-page>
