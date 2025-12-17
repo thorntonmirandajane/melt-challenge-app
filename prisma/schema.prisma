@@ -112,7 +112,7 @@ model Photo {
   shop              String
 
   // Storage fields - either base64 (temporary) OR Shopify URL (final)
-  base64Data        String?          @db.Text // Temporary base64 encoded photo data
+  base64Data        String? // Temporary base64 encoded photo data
   shopifyFileId     String?          // Shopify file ID (e.g., "gid://shopify/MediaImage/123")
   shopifyUrl        String?          // Final Shopify CDN URL
 
