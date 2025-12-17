@@ -11,7 +11,7 @@ async function createChallenge() {
 
     const challenge = await prisma.challenge.create({
       data: {
-        shop: 'default-shop.myshopify.com',
+        shop: 'bowmar-nutrition-test.myshopify.com',
         name: '30-Day Weight Loss Challenge',
         description: 'Join our 30-day weight loss challenge and track your progress!',
         startDate,
