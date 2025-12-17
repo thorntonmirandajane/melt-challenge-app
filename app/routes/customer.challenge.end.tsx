@@ -82,7 +82,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       shop = customer.shop;
     } catch (error) {
       // Not logged in - use default shop
-      shop = process.env.SHOPIFY_SHOP_DOMAIN || "default-shop.myshopify.com";
+      shop = "bowmar-nutrition-test.myshopify.com";
+      console.log("User not logged in, using default shop:", shop);
     }
 
     // Lookup Shopify customer by email to get updated order data
@@ -270,7 +271,7 @@ export default function ChallengeEnd() {
     <div className="challenge-container">
       <div className="challenge-header">
         <h1>Complete Your Weight Loss Challenge</h1>
-        <p>Welcome back, {customer.firstName || customer.email}!</p>
+        {customer && <p>Welcome back, {customer.firstName || customer.email}!</p>}
         {participant?.startWeight && (
           <p className="start-weight">Starting Weight: <strong>{participant.startWeight} lbs</strong></p>
         )}
