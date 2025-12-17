@@ -6,6 +6,7 @@ import { canStartChallenge, getOrCreateParticipant } from "../utils/challenge.se
 import { validateChallengeForm } from "../utils/validation";
 import { lookupCustomerByEmail } from "../utils/shopify-customer.server";
 import { authenticate } from "../shopify.server";
+import { getCustomizationSettings } from "../utils/customization.server";
 import prisma from "../db.server";
 
 // ============================================
@@ -15,15 +16,22 @@ import prisma from "../db.server";
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   // Try to get customer if logged in, but don't require it
   let customer = null;
+  let shop = "bowmar-nutrition-test.myshopify.com"; // Default shop
+
   try {
     customer = await requireCustomer(request);
+    shop = customer.shop;
   } catch (error) {
     // Customer not logged in - they can still fill out the form with email
   }
 
+  // Load customization settings for the shop
+  const settings = await getCustomizationSettings(shop);
+
   return {
     customer,
     canStart: true,
+    settings,
   };
 };
 
@@ -227,7 +235,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 // ============================================
 
 export default function ChallengeStart() {
-  const { customer } = useLoaderData<typeof loader>();
+  const { customer, settings } = useLoaderData<typeof loader>();
   const navigation = useNavigation();
   const submit = useSubmit();
   const isSubmitting = navigation.state === "submitting";
@@ -327,11 +335,11 @@ export default function ChallengeStart() {
   };
 
   return (
-    <div className="challenge-container">
+    <div className="challenge-container" style={{ backgroundColor: settings.backgroundColor, color: settings.textColor }}>
       <div className="challenge-header">
-        <h1>Start Your Weight Loss Challenge</h1>
-        <p>Welcome{customer ? `, ${customer.firstName || customer.email}` : ''}!</p>
-        <p>Fill out this form to begin your transformation journey.</p>
+        <h1 style={{ color: settings.primaryColor }}>{settings.startFormTitle}</h1>
+        {settings.startFormWelcomeText && <p>{settings.startFormWelcomeText}</p>}
+        {!settings.startFormWelcomeText && customer && <p>Welcome back, {customer.firstName || customer.email}!</p>}
       </div>
 
       <Form method="post" onSubmit={handleSubmit} className="challenge-form">
@@ -473,8 +481,14 @@ export default function ChallengeStart() {
           type="submit"
           className="submit-btn"
           disabled={isSubmitting || uploading}
+          style={{
+            backgroundColor: settings.buttonColor,
+            borderColor: settings.buttonColor
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = settings.buttonHoverColor || settings.buttonColor}
+          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = settings.buttonColor}
         >
-          {uploading ? "Uploading photos..." : isSubmitting ? "Submitting..." : "Start Challenge"}
+          {uploading ? "Uploading photos..." : isSubmitting ? "Submitting..." : settings.startFormSubmitButtonText}
         </button>
 
         {errors.general && (
@@ -498,11 +512,10 @@ export default function ChallengeStart() {
         .challenge-header h1 {
           font-size: 28px;
           margin-bottom: 10px;
-          color: #333;
         }
 
         .challenge-form {
-          background: #f9f9f9;
+          background: ${settings.inputBackgroundColor};
           padding: 30px;
           border-radius: 8px;
           box-shadow: 0 2px 8px rgba(0,0,0,0.1);
@@ -516,7 +529,7 @@ export default function ChallengeStart() {
           display: block;
           font-weight: 600;
           margin-bottom: 8px;
-          color: #333;
+          color: ${settings.textColor};
         }
 
         input[type="email"],
@@ -525,41 +538,44 @@ export default function ChallengeStart() {
         textarea {
           width: 100%;
           padding: 10px;
-          border: 1px solid #ddd;
+          border: 1px solid ${settings.inputBorderColor};
           border-radius: 4px;
           font-size: 16px;
+          background: ${settings.backgroundColor};
+          color: ${settings.textColor};
         }
 
         input[type="file"] {
           width: 100%;
           padding: 10px;
-          border: 2px dashed #ddd;
+          border: 2px dashed ${settings.inputBorderColor};
           border-radius: 4px;
           cursor: pointer;
         }
 
         .help-text {
           font-size: 14px;
-          color: #666;
+          color: ${settings.textColor};
+          opacity: 0.7;
           margin: 5px 0;
         }
 
         .file-count {
           font-size: 14px;
-          color: #28a745;
+          color: ${settings.buttonColor};
           margin-top: 5px;
         }
 
         .char-count {
           font-size: 12px;
-          color: #666;
+          color: ${settings.textColor};
+          opacity: 0.6;
           float: right;
         }
 
         .submit-btn {
           width: 100%;
           padding: 14px;
-          background: #007bff;
           color: white;
           border: none;
           border-radius: 4px;
@@ -567,10 +583,6 @@ export default function ChallengeStart() {
           font-weight: 600;
           cursor: pointer;
           transition: background 0.3s;
-        }
-
-        .submit-btn:hover:not(:disabled) {
-          background: #0056b3;
         }
 
         .submit-btn:disabled {

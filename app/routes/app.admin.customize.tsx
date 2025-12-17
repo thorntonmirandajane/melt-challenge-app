@@ -1,8 +1,9 @@
 import type { LoaderFunctionArgs, ActionFunctionArgs, HeadersFunction } from "react-router";
-import { useLoaderData, Form, useNavigation, Link, useRouteError } from "react-router";
+import { useLoaderData, Form, useNavigation, Link, useRouteError, redirect } from "react-router";
 import { authenticate } from "../shopify.server";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { useState } from "react";
+import { getCustomizationSettings, updateCustomizationSettings } from "../utils/customization.server";
 
 // ============================================
 // LOADER
@@ -12,19 +13,12 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
   const shop = session.shop;
 
-  // In a real implementation, you'd load saved customizations from the database
-  // For now, we'll return defaults
+  // Load customization settings from database
+  const settings = await getCustomizationSettings(shop);
+
   return {
     shop,
-    embedUrl: `https://${shop.replace('.myshopify.com', '')}.myshopify.com/a/challenge`,
-    customization: {
-      primaryColor: "#3b82f6",
-      buttonColor: "#8b5cf6",
-      fontSize: "16",
-      showProgressBar: true,
-      requirePhotos: true,
-      photoCount: 3,
-    },
+    settings,
   };
 };
 
@@ -34,22 +28,44 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
 export const action = async ({ request }: ActionFunctionArgs) => {
   const { session } = await authenticate.admin(request);
+  const shop = session.shop;
   const formData = await request.formData();
 
-  // Save customization settings
-  const customization = {
-    primaryColor: formData.get("primaryColor"),
-    buttonColor: formData.get("buttonColor"),
-    fontSize: formData.get("fontSize"),
-    showProgressBar: formData.get("showProgressBar") === "on",
-    requirePhotos: formData.get("requirePhotos") === "on",
-    photoCount: parseInt(formData.get("photoCount") as string),
+  // Extract all text settings
+  const textSettings = {
+    startFormTitle: formData.get("startFormTitle") as string,
+    startFormWelcomeText: (formData.get("startFormWelcomeText") as string) || null,
+    startFormSubmitButtonText: formData.get("startFormSubmitButtonText") as string,
+    endFormTitle: formData.get("endFormTitle") as string,
+    endFormWelcomeText: (formData.get("endFormWelcomeText") as string) || null,
+    endFormSubmitButtonText: formData.get("endFormSubmitButtonText") as string,
+    successStartTitle: formData.get("successStartTitle") as string,
+    successStartMessage: (formData.get("successStartMessage") as string) || null,
+    successStartSubMessage: (formData.get("successStartSubMessage") as string) || null,
+    successEndTitle: formData.get("successEndTitle") as string,
+    successEndMessage: (formData.get("successEndMessage") as string) || null,
+    successEndSubMessage: (formData.get("successEndSubMessage") as string) || null,
   };
 
-  // In a real implementation, save to database
-  console.log("Saving customization:", customization);
+  // Extract all color settings
+  const colorSettings = {
+    primaryColor: formData.get("primaryColor") as string,
+    secondaryColor: formData.get("secondaryColor") as string,
+    backgroundColor: formData.get("backgroundColor") as string,
+    textColor: formData.get("textColor") as string,
+    buttonColor: formData.get("buttonColor") as string,
+    buttonHoverColor: formData.get("buttonHoverColor") as string,
+    inputBackgroundColor: formData.get("inputBackgroundColor") as string,
+    inputBorderColor: formData.get("inputBorderColor") as string,
+  };
 
-  return { success: true };
+  // Save all settings to database
+  await updateCustomizationSettings(shop, {
+    ...textSettings,
+    ...colorSettings,
+  });
+
+  return redirect("/app/admin/customize?success=true");
 };
 
 // ============================================
@@ -57,501 +73,386 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 // ============================================
 
 export default function CustomizeExperience() {
-  const { shop, embedUrl, customization } = useLoaderData<typeof loader>();
+  const { shop, settings } = useLoaderData<typeof loader>();
   const navigation = useNavigation();
   const isSubmitting = navigation.state === "submitting";
 
-  const [formData, setFormData] = useState(customization);
-  const [copied, setCopied] = useState(false);
-
-  const embedCode = `<!-- Weight Loss Challenge Form -->
-<div id="weight-loss-challenge"></div>
-<script src="https://your-app-url.com/embed.js"></script>
-<script>
-  WeightLossChallenge.init({
-    shop: "${shop}",
-    primaryColor: "${formData.primaryColor}",
-    buttonColor: "${formData.buttonColor}"
-  });
-</script>`;
-
-  const handleCopyEmbed = () => {
-    navigator.clipboard.writeText(embedCode);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
+  const [activeTab, setActiveTab] = useState<"text" | "colors">("text");
 
   return (
-    <s-page heading="Customize Customer Experience">
+    <s-page heading="Customize Forms">
       <Link to="/app" slot="primary-action">
         <s-button>← Back to Home</s-button>
       </Link>
 
-      <div className="customize-container">
-        {/* Left Side - Form Designer */}
-        <div className="designer-panel">
-          <s-section heading="Form Settings">
-            <Form method="post" className="customize-form">
-              <div className="form-group">
-                <label htmlFor="primaryColor">Primary Color</label>
-                <div className="color-input-group">
-                  <input
-                    type="color"
-                    id="primaryColor"
-                    name="primaryColor"
-                    value={formData.primaryColor}
-                    onChange={(e) => setFormData({ ...formData, primaryColor: e.target.value })}
-                  />
-                  <input
-                    type="text"
-                    value={formData.primaryColor}
-                    onChange={(e) => setFormData({ ...formData, primaryColor: e.target.value })}
-                    className="hex-input"
-                    placeholder="#3b82f6"
-                  />
-                </div>
-              </div>
+      <s-section>
+        <s-card>
+          <s-stack vertical spacing="loose">
+            <s-text variant="headingMd">Customize Challenge Forms</s-text>
+            <s-text>Customize the text, colors, and styling of your challenge forms and success pages.</s-text>
 
-              <div className="form-group">
-                <label htmlFor="buttonColor">Button Color</label>
-                <div className="color-input-group">
-                  <input
-                    type="color"
-                    id="buttonColor"
-                    name="buttonColor"
-                    value={formData.buttonColor}
-                    onChange={(e) => setFormData({ ...formData, buttonColor: e.target.value })}
-                  />
-                  <input
-                    type="text"
-                    value={formData.buttonColor}
-                    onChange={(e) => setFormData({ ...formData, buttonColor: e.target.value })}
-                    className="hex-input"
-                    placeholder="#8b5cf6"
-                  />
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="fontSize">Font Size (px)</label>
-                <input
-                  type="number"
-                  id="fontSize"
-                  name="fontSize"
-                  min="12"
-                  max="24"
-                  value={formData.fontSize}
-                  onChange={(e) => setFormData({ ...formData, fontSize: e.target.value })}
-                  className="number-input"
-                />
-              </div>
-
-              <div className="form-group">
-                <label className="checkbox-label">
-                  <input
-                    type="checkbox"
-                    name="showProgressBar"
-                    checked={formData.showProgressBar}
-                    onChange={(e) => setFormData({ ...formData, showProgressBar: e.target.checked })}
-                  />
-                  <span>Show Progress Bar</span>
-                </label>
-              </div>
-
-              <div className="form-group">
-                <label className="checkbox-label">
-                  <input
-                    type="checkbox"
-                    name="requirePhotos"
-                    checked={formData.requirePhotos}
-                    onChange={(e) => setFormData({ ...formData, requirePhotos: e.target.checked })}
-                  />
-                  <span>Require Photo Upload</span>
-                </label>
-              </div>
-
-              {formData.requirePhotos && (
-                <div className="form-group">
-                  <label htmlFor="photoCount">Number of Photos Required</label>
-                  <select
-                    id="photoCount"
-                    name="photoCount"
-                    value={formData.photoCount}
-                    onChange={(e) => setFormData({ ...formData, photoCount: parseInt(e.target.value) })}
-                    className="select-input"
-                  >
-                    <option value="1">1 Photo</option>
-                    <option value="2">2 Photos</option>
-                    <option value="3">3 Photos</option>
-                    <option value="4">4 Photos</option>
-                  </select>
-                </div>
-              )}
-
-              <button type="submit" className="save-btn" disabled={isSubmitting}>
-                {isSubmitting ? "Saving..." : "Save Settings"}
-              </button>
-            </Form>
-          </s-section>
-
-          {/* Embed Code Section */}
-          <s-section heading="Embed Code">
-            <div className="embed-section">
-              <p className="embed-instructions">
-                Copy and paste this code into your challenge page to embed the form:
-              </p>
-              <div className="code-block">
-                <pre><code>{embedCode}</code></pre>
-                <button onClick={handleCopyEmbed} className="copy-btn">
-                  {copied ? "✓ Copied!" : "Copy Code"}
-                </button>
-              </div>
-              <div className="embed-links">
-                <h4>Direct Links:</h4>
-                <div className="link-item">
-                  <span className="link-label">Start Challenge:</span>
-                  <code className="link-url">/customer/challenge/start</code>
-                </div>
-                <div className="link-item">
-                  <span className="link-label">End Challenge:</span>
-                  <code className="link-url">/customer/challenge/end</code>
-                </div>
-              </div>
-            </div>
-          </s-section>
-        </div>
-
-        {/* Right Side - Live Preview */}
-        <div className="preview-panel">
-          <s-section heading="Live Preview">
-            <div className="preview-container">
-              <div
-                className="form-preview"
+            {/* Tabs */}
+            <div style={{ display: "flex", gap: "10px", borderBottom: "1px solid #ddd", paddingBottom: "10px" }}>
+              <button
+                type="button"
+                onClick={() => setActiveTab("text")}
                 style={{
-                  fontSize: `${formData.fontSize}px`,
-                  '--primary-color': formData.primaryColor,
-                  '--button-color': formData.buttonColor,
-                } as React.CSSProperties}
+                  padding: "10px 20px",
+                  background: activeTab === "text" ? "#667eea" : "transparent",
+                  color: activeTab === "text" ? "white" : "#333",
+                  border: "none",
+                  borderRadius: "4px",
+                  cursor: "pointer",
+                  fontWeight: activeTab === "text" ? "600" : "400",
+                }}
               >
-                <h2 style={{ color: formData.primaryColor }}>Start Your Challenge</h2>
-                <p className="preview-subtitle">Fill out this form to begin your transformation</p>
-
-                {formData.showProgressBar && (
-                  <div className="progress-bar">
-                    <div className="progress-fill" style={{ width: "33%", background: formData.primaryColor }}></div>
-                  </div>
-                )}
-
-                <div className="preview-field">
-                  <label>Current Weight (lbs) *</label>
-                  <input type="number" placeholder="150" disabled />
-                </div>
-
-                {formData.requirePhotos && (
-                  <div className="preview-field">
-                    <label>Upload Photos ({formData.photoCount} required) *</label>
-                    <div className="file-upload-preview">
-                      <span>📷 Choose {formData.photoCount} photos</span>
-                    </div>
-                  </div>
-                )}
-
-                <div className="preview-field">
-                  <label>Notes (optional)</label>
-                  <textarea placeholder="Share your goals..." disabled rows={3}></textarea>
-                </div>
-
-                <button
-                  className="preview-button"
-                  style={{ background: formData.buttonColor }}
-                  disabled
-                >
-                  Start Challenge
-                </button>
-              </div>
+                Text & Verbiage
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab("colors")}
+                style={{
+                  padding: "10px 20px",
+                  background: activeTab === "colors" ? "#667eea" : "transparent",
+                  color: activeTab === "colors" ? "white" : "#333",
+                  border: "none",
+                  borderRadius: "4px",
+                  cursor: "pointer",
+                  fontWeight: activeTab === "colors" ? "600" : "400",
+                }}
+              >
+                Colors & Styling
+              </button>
             </div>
-          </s-section>
-        </div>
-      </div>
 
-      <style>{`
-        .customize-container {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 24px;
-          margin-top: 20px;
-        }
+            <Form method="post">
+              <s-stack vertical spacing="loose">
+                {/* TEXT TAB */}
+                {activeTab === "text" && (
+                  <>
+                    {/* Start Form */}
+                    <s-card sectioned>
+                      <s-stack vertical spacing="loose">
+                        <s-text variant="headingSm">Start Challenge Form</s-text>
 
-        @media (max-width: 1024px) {
-          .customize-container {
-            grid-template-columns: 1fr;
-          }
-        }
+                        <div>
+                          <label htmlFor="startFormTitle" style={{ display: "block", fontWeight: "600", marginBottom: "8px" }}>
+                            Form Title
+                          </label>
+                          <input
+                            type="text"
+                            id="startFormTitle"
+                            name="startFormTitle"
+                            defaultValue={settings.startFormTitle || ""}
+                            placeholder="Start Your Weight Loss Challenge"
+                            style={{ width: "100%", padding: "10px", border: "1px solid #ddd", borderRadius: "4px" }}
+                          />
+                        </div>
 
-        .designer-panel,
-        .preview-panel {
-          min-height: 500px;
-        }
+                        <div>
+                          <label htmlFor="startFormWelcomeText" style={{ display: "block", fontWeight: "600", marginBottom: "8px" }}>
+                            Welcome Text (Optional)
+                          </label>
+                          <textarea
+                            id="startFormWelcomeText"
+                            name="startFormWelcomeText"
+                            defaultValue={settings.startFormWelcomeText || ""}
+                            placeholder="Add a welcome message..."
+                            rows={3}
+                            style={{ width: "100%", padding: "10px", border: "1px solid #ddd", borderRadius: "4px" }}
+                          />
+                        </div>
 
-        .customize-form {
-          display: flex;
-          flex-direction: column;
-          gap: 20px;
-        }
+                        <div>
+                          <label htmlFor="startFormSubmitButtonText" style={{ display: "block", fontWeight: "600", marginBottom: "8px" }}>
+                            Submit Button Text
+                          </label>
+                          <input
+                            type="text"
+                            id="startFormSubmitButtonText"
+                            name="startFormSubmitButtonText"
+                            defaultValue={settings.startFormSubmitButtonText || ""}
+                            placeholder="Start Challenge"
+                            style={{ width: "100%", padding: "10px", border: "1px solid #ddd", borderRadius: "4px" }}
+                          />
+                        </div>
+                      </s-stack>
+                    </s-card>
 
-        .form-group {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-        }
+                    {/* End Form */}
+                    <s-card sectioned>
+                      <s-stack vertical spacing="loose">
+                        <s-text variant="headingSm">End Challenge Form</s-text>
 
-        .form-group label {
-          font-weight: 600;
-          font-size: 14px;
-          color: #374151;
-        }
+                        <div>
+                          <label htmlFor="endFormTitle" style={{ display: "block", fontWeight: "600", marginBottom: "8px" }}>
+                            Form Title
+                          </label>
+                          <input
+                            type="text"
+                            id="endFormTitle"
+                            name="endFormTitle"
+                            defaultValue={settings.endFormTitle || ""}
+                            placeholder="Complete Your Weight Loss Challenge"
+                            style={{ width: "100%", padding: "10px", border: "1px solid #ddd", borderRadius: "4px" }}
+                          />
+                        </div>
 
-        .color-input-group {
-          display: flex;
-          gap: 12px;
-          align-items: center;
-        }
+                        <div>
+                          <label htmlFor="endFormWelcomeText" style={{ display: "block", fontWeight: "600", marginBottom: "8px" }}>
+                            Welcome Text (Optional)
+                          </label>
+                          <textarea
+                            id="endFormWelcomeText"
+                            name="endFormWelcomeText"
+                            defaultValue={settings.endFormWelcomeText || ""}
+                            placeholder="Add a welcome message..."
+                            rows={3}
+                            style={{ width: "100%", padding: "10px", border: "1px solid #ddd", borderRadius: "4px" }}
+                          />
+                        </div>
 
-        .color-input-group input[type="color"] {
-          width: 60px;
-          height: 40px;
-          border: 2px solid #e5e7eb;
-          border-radius: 6px;
-          cursor: pointer;
-        }
+                        <div>
+                          <label htmlFor="endFormSubmitButtonText" style={{ display: "block", fontWeight: "600", marginBottom: "8px" }}>
+                            Submit Button Text
+                          </label>
+                          <input
+                            type="text"
+                            id="endFormSubmitButtonText"
+                            name="endFormSubmitButtonText"
+                            defaultValue={settings.endFormSubmitButtonText || ""}
+                            placeholder="Complete Challenge"
+                            style={{ width: "100%", padding: "10px", border: "1px solid #ddd", borderRadius: "4px" }}
+                          />
+                        </div>
+                      </s-stack>
+                    </s-card>
 
-        .hex-input {
-          flex: 1;
-          padding: 8px 12px;
-          border: 1px solid #d1d5db;
-          border-radius: 6px;
-          font-family: monospace;
-        }
+                    {/* Success - Start */}
+                    <s-card sectioned>
+                      <s-stack vertical spacing="loose">
+                        <s-text variant="headingSm">Success Page - Start Challenge</s-text>
 
-        .number-input,
-        .select-input {
-          padding: 8px 12px;
-          border: 1px solid #d1d5db;
-          border-radius: 6px;
-          font-size: 14px;
-        }
+                        <div>
+                          <label htmlFor="successStartTitle" style={{ display: "block", fontWeight: "600", marginBottom: "8px" }}>
+                            Success Title
+                          </label>
+                          <input
+                            type="text"
+                            id="successStartTitle"
+                            name="successStartTitle"
+                            defaultValue={settings.successStartTitle || ""}
+                            placeholder="Challenge Started!"
+                            style={{ width: "100%", padding: "10px", border: "1px solid #ddd", borderRadius: "4px" }}
+                          />
+                        </div>
 
-        .checkbox-label {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          cursor: pointer;
-        }
+                        <div>
+                          <label htmlFor="successStartMessage" style={{ display: "block", fontWeight: "600", marginBottom: "8px" }}>
+                            Success Message (Optional)
+                          </label>
+                          <textarea
+                            id="successStartMessage"
+                            name="successStartMessage"
+                            defaultValue={settings.successStartMessage || ""}
+                            placeholder="Add a success message..."
+                            rows={3}
+                            style={{ width: "100%", padding: "10px", border: "1px solid #ddd", borderRadius: "4px" }}
+                          />
+                        </div>
 
-        .checkbox-label input[type="checkbox"] {
-          width: 18px;
-          height: 18px;
-          cursor: pointer;
-        }
+                        <div>
+                          <label htmlFor="successStartSubMessage" style={{ display: "block", fontWeight: "600", marginBottom: "8px" }}>
+                            Sub Message (Optional)
+                          </label>
+                          <textarea
+                            id="successStartSubMessage"
+                            name="successStartSubMessage"
+                            defaultValue={settings.successStartSubMessage || ""}
+                            placeholder="Add a sub message..."
+                            rows={2}
+                            style={{ width: "100%", padding: "10px", border: "1px solid #ddd", borderRadius: "4px" }}
+                          />
+                        </div>
+                      </s-stack>
+                    </s-card>
 
-        .checkbox-label span {
-          font-weight: 500;
-          color: #374151;
-        }
+                    {/* Success - End */}
+                    <s-card sectioned>
+                      <s-stack vertical spacing="loose">
+                        <s-text variant="headingSm">Success Page - End Challenge</s-text>
 
-        .save-btn {
-          padding: 12px 24px;
-          background: #3b82f6;
-          color: white;
-          border: none;
-          border-radius: 8px;
-          font-weight: 600;
-          font-size: 16px;
-          cursor: pointer;
-          transition: background 0.2s;
-        }
+                        <div>
+                          <label htmlFor="successEndTitle" style={{ display: "block", fontWeight: "600", marginBottom: "8px" }}>
+                            Success Title
+                          </label>
+                          <input
+                            type="text"
+                            id="successEndTitle"
+                            name="successEndTitle"
+                            defaultValue={settings.successEndTitle || ""}
+                            placeholder="Challenge Completed!"
+                            style={{ width: "100%", padding: "10px", border: "1px solid #ddd", borderRadius: "4px" }}
+                          />
+                        </div>
 
-        .save-btn:hover:not(:disabled) {
-          background: #2563eb;
-        }
+                        <div>
+                          <label htmlFor="successEndMessage" style={{ display: "block", fontWeight: "600", marginBottom: "8px" }}>
+                            Success Message (Optional)
+                          </label>
+                          <textarea
+                            id="successEndMessage"
+                            name="successEndMessage"
+                            defaultValue={settings.successEndMessage || ""}
+                            placeholder="Add a success message..."
+                            rows={3}
+                            style={{ width: "100%", padding: "10px", border: "1px solid #ddd", borderRadius: "4px" }}
+                          />
+                        </div>
 
-        .save-btn:disabled {
-          background: #9ca3af;
-          cursor: not-allowed;
-        }
+                        <div>
+                          <label htmlFor="successEndSubMessage" style={{ display: "block", fontWeight: "600", marginBottom: "8px" }}>
+                            Sub Message (Optional)
+                          </label>
+                          <textarea
+                            id="successEndSubMessage"
+                            name="successEndSubMessage"
+                            defaultValue={settings.successEndSubMessage || ""}
+                            placeholder="Add a sub message..."
+                            rows={2}
+                            style={{ width: "100%", padding: "10px", border: "1px solid #ddd", borderRadius: "4px" }}
+                          />
+                        </div>
+                      </s-stack>
+                    </s-card>
+                  </>
+                )}
 
-        .embed-section {
-          margin-top: 16px;
-        }
+                {/* COLORS TAB */}
+                {activeTab === "colors" && (
+                  <s-card sectioned>
+                    <s-stack vertical spacing="loose">
+                      <s-text variant="headingSm">Color Customization</s-text>
 
-        .embed-instructions {
-          font-size: 14px;
-          color: #6b7280;
-          margin-bottom: 12px;
-        }
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
+                        <div>
+                          <label htmlFor="primaryColor" style={{ display: "block", fontWeight: "600", marginBottom: "8px" }}>
+                            Primary Color
+                          </label>
+                          <input
+                            type="color"
+                            id="primaryColor"
+                            name="primaryColor"
+                            defaultValue={settings.primaryColor || "#667eea"}
+                            style={{ width: "100%", height: "50px", border: "1px solid #ddd", borderRadius: "4px", cursor: "pointer" }}
+                          />
+                        </div>
 
-        .code-block {
-          position: relative;
-          background: #1e293b;
-          border-radius: 8px;
-          padding: 16px;
-          margin-bottom: 20px;
-        }
+                        <div>
+                          <label htmlFor="secondaryColor" style={{ display: "block", fontWeight: "600", marginBottom: "8px" }}>
+                            Secondary Color
+                          </label>
+                          <input
+                            type="color"
+                            id="secondaryColor"
+                            name="secondaryColor"
+                            defaultValue={settings.secondaryColor || "#764ba2"}
+                            style={{ width: "100%", height: "50px", border: "1px solid #ddd", borderRadius: "4px", cursor: "pointer" }}
+                          />
+                        </div>
 
-        .code-block pre {
-          margin: 0;
-          overflow-x: auto;
-        }
+                        <div>
+                          <label htmlFor="buttonColor" style={{ display: "block", fontWeight: "600", marginBottom: "8px" }}>
+                            Button Color
+                          </label>
+                          <input
+                            type="color"
+                            id="buttonColor"
+                            name="buttonColor"
+                            defaultValue={settings.buttonColor || "#28a745"}
+                            style={{ width: "100%", height: "50px", border: "1px solid #ddd", borderRadius: "4px", cursor: "pointer" }}
+                          />
+                        </div>
 
-        .code-block code {
-          color: #e2e8f0;
-          font-family: 'Monaco', 'Courier New', monospace;
-          font-size: 13px;
-          line-height: 1.6;
-        }
+                        <div>
+                          <label htmlFor="buttonHoverColor" style={{ display: "block", fontWeight: "600", marginBottom: "8px" }}>
+                            Button Hover Color
+                          </label>
+                          <input
+                            type="color"
+                            id="buttonHoverColor"
+                            name="buttonHoverColor"
+                            defaultValue={settings.buttonHoverColor || "#218838"}
+                            style={{ width: "100%", height: "50px", border: "1px solid #ddd", borderRadius: "4px", cursor: "pointer" }}
+                          />
+                        </div>
 
-        .copy-btn {
-          position: absolute;
-          top: 12px;
-          right: 12px;
-          padding: 6px 12px;
-          background: #3b82f6;
-          color: white;
-          border: none;
-          border-radius: 4px;
-          font-size: 12px;
-          font-weight: 600;
-          cursor: pointer;
-          transition: background 0.2s;
-        }
+                        <div>
+                          <label htmlFor="backgroundColor" style={{ display: "block", fontWeight: "600", marginBottom: "8px" }}>
+                            Background Color
+                          </label>
+                          <input
+                            type="color"
+                            id="backgroundColor"
+                            name="backgroundColor"
+                            defaultValue={settings.backgroundColor || "#ffffff"}
+                            style={{ width: "100%", height: "50px", border: "1px solid #ddd", borderRadius: "4px", cursor: "pointer" }}
+                          />
+                        </div>
 
-        .copy-btn:hover {
-          background: #2563eb;
-        }
+                        <div>
+                          <label htmlFor="textColor" style={{ display: "block", fontWeight: "600", marginBottom: "8px" }}>
+                            Text Color
+                          </label>
+                          <input
+                            type="color"
+                            id="textColor"
+                            name="textColor"
+                            defaultValue={settings.textColor || "#333333"}
+                            style={{ width: "100%", height: "50px", border: "1px solid #ddd", borderRadius: "4px", cursor: "pointer" }}
+                          />
+                        </div>
 
-        .embed-links {
-          background: #f9fafb;
-          padding: 16px;
-          border-radius: 8px;
-        }
+                        <div>
+                          <label htmlFor="inputBackgroundColor" style={{ display: "block", fontWeight: "600", marginBottom: "8px" }}>
+                            Input Background Color
+                          </label>
+                          <input
+                            type="color"
+                            id="inputBackgroundColor"
+                            name="inputBackgroundColor"
+                            defaultValue={settings.inputBackgroundColor || "#f9f9f9"}
+                            style={{ width: "100%", height: "50px", border: "1px solid #ddd", borderRadius: "4px", cursor: "pointer" }}
+                          />
+                        </div>
 
-        .embed-links h4 {
-          margin: 0 0 12px 0;
-          font-size: 14px;
-          font-weight: 600;
-          color: #111827;
-        }
+                        <div>
+                          <label htmlFor="inputBorderColor" style={{ display: "block", fontWeight: "600", marginBottom: "8px" }}>
+                            Input Border Color
+                          </label>
+                          <input
+                            type="color"
+                            id="inputBorderColor"
+                            name="inputBorderColor"
+                            defaultValue={settings.inputBorderColor || "#dddddd"}
+                            style={{ width: "100%", height: "50px", border: "1px solid #ddd", borderRadius: "4px", cursor: "pointer" }}
+                          />
+                        </div>
+                      </div>
+                    </s-stack>
+                  </s-card>
+                )}
 
-        .link-item {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          margin-bottom: 8px;
-        }
+                {/* Submit Button */}
+                <s-button submit variant="primary" disabled={isSubmitting}>
+                  {isSubmitting ? "Saving..." : "Save Customization Settings"}
+                </s-button>
+              </s-stack>
+            </Form>
+          </s-stack>
+        </s-card>
+      </s-section>
 
-        .link-label {
-          font-size: 13px;
-          font-weight: 500;
-          color: #6b7280;
-          min-width: 120px;
-        }
-
-        .link-url {
-          background: white;
-          padding: 4px 8px;
-          border-radius: 4px;
-          font-family: monospace;
-          font-size: 12px;
-          color: #3b82f6;
-        }
-
-        .preview-container {
-          background: #f3f4f6;
-          border-radius: 12px;
-          padding: 32px;
-          min-height: 600px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-
-        .form-preview {
-          background: white;
-          padding: 32px;
-          border-radius: 12px;
-          max-width: 500px;
-          width: 100%;
-          box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-        }
-
-        .form-preview h2 {
-          margin: 0 0 8px 0;
-          font-size: 24px;
-          font-weight: 700;
-        }
-
-        .preview-subtitle {
-          color: #6b7280;
-          margin: 0 0 24px 0;
-          font-size: 14px;
-        }
-
-        .progress-bar {
-          height: 8px;
-          background: #e5e7eb;
-          border-radius: 4px;
-          overflow: hidden;
-          margin-bottom: 24px;
-        }
-
-        .progress-fill {
-          height: 100%;
-          transition: width 0.3s ease;
-        }
-
-        .preview-field {
-          margin-bottom: 20px;
-        }
-
-        .preview-field label {
-          display: block;
-          font-weight: 600;
-          margin-bottom: 8px;
-          font-size: 14px;
-          color: #374151;
-        }
-
-        .preview-field input,
-        .preview-field textarea {
-          width: 100%;
-          padding: 10px 12px;
-          border: 1px solid #d1d5db;
-          border-radius: 6px;
-          font-size: inherit;
-          box-sizing: border-box;
-        }
-
-        .file-upload-preview {
-          border: 2px dashed #d1d5db;
-          padding: 24px;
-          text-align: center;
-          border-radius: 6px;
-          cursor: not-allowed;
-          color: #6b7280;
-        }
-
-        .preview-button {
-          width: 100%;
-          padding: 14px;
-          border: none;
-          border-radius: 8px;
-          color: white;
-          font-weight: 600;
-          font-size: inherit;
-          cursor: not-allowed;
-          opacity: 0.9;
-        }
-      `}</style>
     </s-page>
   );
 }

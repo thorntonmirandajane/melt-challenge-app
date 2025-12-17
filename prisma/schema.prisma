@@ -166,3 +166,47 @@ enum PhotoUploadStatus {
   UPLOADED   // Successfully uploaded to Shopify
   FAILED     // Upload failed
 }
+
+// ============================================
+// CUSTOMIZATION SETTINGS
+// ============================================
+
+model CustomizationSettings {
+  id        String   @id @default(uuid())
+  shop      String   @unique // One settings record per shop
+
+  // Start Form Text
+  startFormTitle            String?  @default("Start Your Weight Loss Challenge")
+  startFormWelcomeText      String?
+  startFormSubmitButtonText String?  @default("Start Challenge")
+
+  // End Form Text
+  endFormTitle              String?  @default("Complete Your Weight Loss Challenge")
+  endFormWelcomeText        String?
+  endFormSubmitButtonText   String?  @default("Complete Challenge")
+
+  // Success Page Text - Start
+  successStartTitle         String?  @default("Challenge Started!")
+  successStartMessage       String?
+  successStartSubMessage    String?
+
+  // Success Page Text - End
+  successEndTitle           String?  @default("Challenge Completed!")
+  successEndMessage         String?
+  successEndSubMessage      String?
+
+  // Color Customization
+  primaryColor              String?  @default("#667eea") // Main brand color
+  secondaryColor            String?  @default("#764ba2") // Secondary color
+  backgroundColor           String?  @default("#ffffff") // Form background
+  textColor                 String?  @default("#333333") // Main text color
+  buttonColor               String?  @default("#28a745") // Submit button color
+  buttonHoverColor          String?  @default("#218838") // Submit button hover
+  inputBackgroundColor      String?  @default("#f9f9f9") // Input field background
+  inputBorderColor          String?  @default("#ddd")    // Input field border
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([shop])
+}

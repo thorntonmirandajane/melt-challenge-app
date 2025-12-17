@@ -1,6 +1,7 @@
 import { type LoaderFunctionArgs } from "react-router";
 import { Link, useLoaderData } from "react-router";
 import { getCustomer } from "../utils/customer-auth.server";
+import { getCustomizationSettings } from "../utils/customization.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const customer = await getCustomer(request);
@@ -8,15 +9,20 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const type = url.searchParams.get("type"); // "start" or "end"
   const error = url.searchParams.get("error");
 
+  // Get shop from customer or use default
+  const shop = customer?.shop || "bowmar-nutrition-test.myshopify.com";
+  const settings = await getCustomizationSettings(shop);
+
   return ({
     customer,
     type,
     error,
+    settings,
   });
 };
 
 export default function ChallengeSuccess() {
-  const { customer, type, error } = useLoaderData<typeof loader>();
+  const { customer, type, error, settings } = useLoaderData<typeof loader>();
 
   if (error) {
     return (
@@ -31,7 +37,7 @@ export default function ChallengeSuccess() {
             </Link>
           </div>
         </div>
-        <style>{styles}</style>
+        <style>{getStyles(settings)}</style>
       </div>
     );
   }
@@ -41,13 +47,18 @@ export default function ChallengeSuccess() {
       <div className="success-container">
         <div className="success-card">
           <div className="icon success-icon">🎉</div>
-          <h1>Challenge Started!</h1>
+          <h1>{settings.successStartTitle}</h1>
           <p className="message">
-            Congratulations, {customer?.firstName || "there"}! You've successfully started your weight loss challenge.
+            {settings.successStartMessage || `Congratulations, ${customer?.firstName || "there"}! You've successfully started your weight loss challenge.`}
           </p>
-          <p className="sub-message">
-            Your starting photos and weight have been recorded. Keep up the great work!
-          </p>
+          {settings.successStartSubMessage && (
+            <p className="sub-message">{settings.successStartSubMessage}</p>
+          )}
+          {!settings.successStartSubMessage && (
+            <p className="sub-message">
+              Your starting photos and weight have been recorded. Keep up the great work!
+            </p>
+          )}
           <div className="next-steps">
             <h3>What's Next?</h3>
             <ul>
@@ -57,7 +68,7 @@ export default function ChallengeSuccess() {
             </ul>
           </div>
         </div>
-        <style>{styles}</style>
+        <style>{getStyles(settings)}</style>
       </div>
     );
   }
@@ -67,13 +78,18 @@ export default function ChallengeSuccess() {
       <div className="success-container">
         <div className="success-card">
           <div className="icon success-icon">🏆</div>
-          <h1>Challenge Completed!</h1>
+          <h1>{settings.successEndTitle}</h1>
           <p className="message">
-            Amazing work, {customer?.firstName || "there"}! You've successfully completed your weight loss challenge!
+            {settings.successEndMessage || `Amazing work, ${customer?.firstName || "there"}! You've successfully completed your weight loss challenge!`}
           </p>
-          <p className="sub-message">
-            Your transformation has been recorded. We're proud of your dedication and hard work!
-          </p>
+          {settings.successEndSubMessage && (
+            <p className="sub-message">{settings.successEndSubMessage}</p>
+          )}
+          {!settings.successEndSubMessage && (
+            <p className="sub-message">
+              Your transformation has been recorded. We're proud of your dedication and hard work!
+            </p>
+          )}
           <div className="celebration">
             <p>🎊 You did it! 🎊</p>
           </div>
@@ -86,7 +102,7 @@ export default function ChallengeSuccess() {
             </ul>
           </div>
         </div>
-        <style>{styles}</style>
+        <style>{getStyles(settings)}</style>
       </div>
     );
   }
@@ -105,25 +121,25 @@ export default function ChallengeSuccess() {
           </Link>
         </div>
       </div>
-      <style>{styles}</style>
+      <style>{getStyles(settings)}</style>
     </div>
   );
 }
 
-const styles = `
+const getStyles = (settings: any) => `
   .success-container {
     min-height: 100vh;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, ${settings.primaryColor} 0%, ${settings.secondaryColor} 100%);
     padding: 20px;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   }
 
   .success-card,
   .error-card {
-    background: white;
+    background: ${settings.backgroundColor};
     padding: 40px;
     border-radius: 12px;
     box-shadow: 0 10px 40px rgba(0,0,0,0.2);
@@ -144,33 +160,34 @@ const styles = `
 
   h1 {
     font-size: 32px;
-    color: #333;
+    color: ${settings.primaryColor};
     margin-bottom: 15px;
   }
 
   .message {
     font-size: 18px;
-    color: #555;
+    color: ${settings.textColor};
     margin-bottom: 10px;
     line-height: 1.6;
   }
 
   .sub-message {
     font-size: 16px;
-    color: #777;
+    color: ${settings.textColor};
     margin-bottom: 30px;
+    opacity: 0.8;
   }
 
   .celebration {
     font-size: 24px;
     margin: 20px 0;
     padding: 15px;
-    background: #f8f9fa;
+    background: ${settings.inputBackgroundColor};
     border-radius: 8px;
   }
 
   .next-steps {
-    background: #f8f9fa;
+    background: ${settings.inputBackgroundColor};
     padding: 20px;
     border-radius: 8px;
     margin: 20px 0;
@@ -179,7 +196,7 @@ const styles = `
 
   .next-steps h3 {
     margin-top: 0;
-    color: #333;
+    color: ${settings.primaryColor};
   }
 
   .next-steps ul {
@@ -189,7 +206,7 @@ const styles = `
 
   .next-steps li {
     margin: 8px 0;
-    color: #555;
+    color: ${settings.textColor};
     line-height: 1.5;
   }
 
@@ -211,23 +228,23 @@ const styles = `
   }
 
   .btn-primary {
-    background: #667eea;
+    background: ${settings.buttonColor};
     color: white;
   }
 
   .btn-primary:hover {
-    background: #5568d3;
+    background: ${settings.buttonHoverColor};
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
   }
 
   .btn-secondary {
-    background: #6c757d;
+    background: ${settings.secondaryColor};
     color: white;
   }
 
   .btn-secondary:hover {
-    background: #5a6268;
+    background: ${settings.primaryColor};
     transform: translateY(-2px);
   }
 
