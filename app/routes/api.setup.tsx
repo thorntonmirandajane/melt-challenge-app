@@ -7,7 +7,6 @@
  * Security: This should be removed or protected after initial setup
  */
 
-import { json } from "react-router";
 import type { LoaderFunctionArgs } from "react-router";
 import { PrismaClient } from "@prisma/client";
 
@@ -24,7 +23,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
     });
 
     if (existingChallenge) {
-      return json({
+      return Response.json({
         success: true,
         message: "Challenge already exists",
         challenge: {
@@ -60,7 +59,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
     console.log('End Date:', challenge.endDate);
     console.log('Is Active:', challenge.isActive);
 
-    return json({
+    return Response.json({
       success: true,
       message: "Challenge created successfully",
       challenge: {
@@ -74,7 +73,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
   } catch (error) {
     console.error('❌ Error in setup endpoint:', error);
 
-    return json(
+    return Response.json(
       {
         success: false,
         error: error instanceof Error ? error.message : "Unknown error",
