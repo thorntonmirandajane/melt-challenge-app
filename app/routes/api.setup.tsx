@@ -7,8 +7,8 @@
  * Security: This should be removed or protected after initial setup
  */
 
-import { json } from "@react-router/node";
-import type { LoaderFunctionArgs } from "@react-router/node";
+import { json } from "react-router";
+import type { LoaderFunctionArgs } from "react-router";
 import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
