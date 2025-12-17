@@ -251,8 +251,12 @@ export default function ChallengeEnd() {
       const submissionId = crypto.randomUUID();
       const results = await uploadPhotos(photoUploads, submissionId);
 
-      const form = e.target as HTMLFormElement;
-      const formData = new FormData(form);
+      // Create FormData and explicitly add all form values
+      const formData = new FormData();
+      formData.set("email", email);
+      formData.set("firstName", firstName);
+      formData.set("lastName", lastName);
+      formData.set("weight", weight);
       formData.set("photos", JSON.stringify(results));
 
       submit(formData, { method: "post" });
