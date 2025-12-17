@@ -7,8 +7,8 @@
  * Security: This should be removed or protected after initial setup
  */
 
-import { json } from "@remix-run/node";
-import type { LoaderFunctionArgs } from "@remix-run/node";
+import { json } from "@react-router/node";
+import type { LoaderFunctionArgs } from "@react-router/node";
 import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
