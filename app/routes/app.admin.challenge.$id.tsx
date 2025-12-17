@@ -104,8 +104,16 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
         percentBodyWeight,
         startDate: startSubmission?.submittedAt,
         endDate: endSubmission?.submittedAt,
-        startPhotos: startSubmission?.photos || [],
-        endPhotos: endSubmission?.photos || [],
+        startPhotos: startSubmission?.photos.map(p => ({
+          id: p.id,
+          url: p.shopifyUrl,
+          orientation: p.orientation,
+        })) || [],
+        endPhotos: endSubmission?.photos.map(p => ({
+          id: p.id,
+          url: p.shopifyUrl,
+          orientation: p.orientation,
+        })) || [],
         orderCount,
         totalSpent,
       };
@@ -330,6 +338,7 @@ export default function ChallengeDetail() {
                   <th>% Body Weight</th>
                   <th>Orders</th>
                   <th>Total Spent</th>
+                  <th>Photo Comparison</th>
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -362,6 +371,38 @@ export default function ChallengeDetail() {
                     </td>
                     <td className="number-cell">{p.orderCount}</td>
                     <td className="number-cell">${p.totalSpent.toFixed(2)}</td>
+                    <td className="photo-comparison-cell">
+                      {(() => {
+                        const startFrontPhoto = p.startPhotos.find(photo => photo.orientation === 'FRONT');
+                        const endFrontPhoto = p.endPhotos.find(photo => photo.orientation === 'FRONT');
+
+                        if (!startFrontPhoto && !endFrontPhoto) {
+                          return <span className="no-photos">No photos</span>;
+                        }
+
+                        return (
+                          <div className="photo-comparison-mini">
+                            <div className="mini-photo-container">
+                              <div className="mini-photo-label">Start</div>
+                              {startFrontPhoto?.url ? (
+                                <img src={startFrontPhoto.url} alt="Start" className="mini-photo" />
+                              ) : (
+                                <div className="mini-photo-placeholder">-</div>
+                              )}
+                            </div>
+                            <div className="mini-photo-arrow">→</div>
+                            <div className="mini-photo-container">
+                              <div className="mini-photo-label">End</div>
+                              {endFrontPhoto?.url ? (
+                                <img src={endFrontPhoto.url} alt="End" className="mini-photo" />
+                              ) : (
+                                <div className="mini-photo-placeholder">-</div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    </td>
                     <td>
                       <Link to={`/app/admin/participant/${p.id}`} className="view-link">
                         View
@@ -395,9 +436,21 @@ export default function ChallengeDetail() {
 
         .stats-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-          gap: 16px;
+          grid-template-columns: repeat(5, 1fr);
+          gap: 12px;
           margin: 16px 0;
+        }
+
+        @media (max-width: 1024px) {
+          .stats-grid {
+            grid-template-columns: repeat(3, 1fr);
+          }
+        }
+
+        @media (max-width: 640px) {
+          .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+          }
         }
 
         .stat-card {
@@ -594,6 +647,73 @@ export default function ChallengeDetail() {
         .view-link:hover {
           color: #1d4ed8;
           text-decoration: underline;
+        }
+
+        .photo-comparison-cell {
+          padding: 8px !important;
+        }
+
+        .photo-comparison-mini {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          justify-content: center;
+        }
+
+        .mini-photo-container {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 4px;
+        }
+
+        .mini-photo-label {
+          font-size: 10px;
+          font-weight: 600;
+          color: #6b7280;
+          text-transform: uppercase;
+        }
+
+        .mini-photo {
+          width: 60px;
+          height: 80px;
+          object-fit: cover;
+          border-radius: 6px;
+          border: 2px solid #e5e7eb;
+          transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .mini-photo:hover {
+          transform: scale(1.5);
+          box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+          z-index: 10;
+          cursor: pointer;
+        }
+
+        .mini-photo-placeholder {
+          width: 60px;
+          height: 80px;
+          background: #f3f4f6;
+          border-radius: 6px;
+          border: 2px dashed #d1d5db;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #9ca3af;
+          font-weight: 600;
+          font-size: 18px;
+        }
+
+        .mini-photo-arrow {
+          font-size: 20px;
+          color: #3b82f6;
+          font-weight: bold;
+        }
+
+        .no-photos {
+          color: #9ca3af;
+          font-style: italic;
+          font-size: 12px;
         }
       `}</style>
     </s-page>
