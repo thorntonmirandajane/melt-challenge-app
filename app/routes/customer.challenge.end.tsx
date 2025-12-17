@@ -258,7 +258,8 @@ export default function ChallengeEnd() {
       submit(formData, { method: "post" });
     } catch (error) {
       console.error("Upload error:", error);
-      setErrors({ photos: "Failed to upload photos. Please try again." });
+      const errorMessage = error instanceof Error ? error.message : "Failed to upload photos. Please try again.";
+      setErrors({ photos: errorMessage });
       setUploading(false);
     }
   };
