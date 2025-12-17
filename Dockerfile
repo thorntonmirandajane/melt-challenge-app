@@ -14,12 +14,11 @@ RUN npm cache clean --force
 
 COPY . .
 
-# Make migration script executable
-COPY migrate.sh /app/migrate.sh
-RUN chmod +x /app/migrate.sh
-
 RUN npx prisma generate
 
 RUN npm run build
 
-CMD ["npm", "run", "start"]
+# Create a startup script that runs migrations then starts the app
+RUN echo '#!/bin/sh\nset -e\necho "Running Prisma migrations..."\nnpx prisma migrate deploy\necho "Starting application..."\nexec npm run start' > /app/start.sh && chmod +x /app/start.sh
+
+CMD ["/app/start.sh"]
