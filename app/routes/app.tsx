@@ -23,6 +23,12 @@ export default function App() {
         <s-link href="/app/admin/customize">Customize Forms</s-link>
       </s-app-nav>
       <Outlet />
+      <style>{`
+        /* Increase max-width for all admin pages */
+        s-page {
+          --s-page-max-width: 1400px;
+        }
+      `}</style>
     </AppProvider>
   );
 }
