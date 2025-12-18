@@ -94,9 +94,9 @@ export default function CustomizeExperience() {
 
   return (
     <s-page heading="Customize Forms">
-      <Link to="/app" slot="primary-action">
-        <s-button>← Back to Home</s-button>
-      </Link>
+      <s-button slot="primary-action" variant="primary" onclick="window.location.href='/app'">
+        ← Back to Home
+      </s-button>
 
       <s-section>
         <s-card>
