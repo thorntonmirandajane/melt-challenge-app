@@ -10,16 +10,18 @@
     {%comment%} Show iframe to challenge app - no login required {%endcomment%}
     <div class="challenge-iframe-container">
       {% assign form_type = block.settings.form_type | default: 'start' %}
-      {% comment %} Use configured app_url, or fall back to automatic detection from app proxy {% endcomment %}
-      {% if block.settings.app_url != blank %}
-        {% assign app_base_url = block.settings.app_url %}
-      {% else %}
-        {% comment %} Default to the production Render URL {% endcomment %}
-        {% assign app_base_url = 'https://melt-challenge-app.onrender.com' %}
+      {% comment %} Default to the production Render URL {% endcomment %}
+      {% assign app_base_url = 'https://melt-challenge-app.onrender.com' %}
+
+      {% comment %} Build the URL with optional challenge_id parameter {% endcomment %}
+      {% assign iframe_url = app_base_url | append: '/customer/challenge/' | append: form_type %}
+      {% if block.settings.challenge_id != blank %}
+        {% assign iframe_url = iframe_url | append: '?challengeId=' | append: block.settings.challenge_id %}
       {% endif %}
+
       <iframe
         id="challenge-iframe"
-        src="{{ app_base_url }}/customer/challenge/{{ form_type }}"
+        src="{{ iframe_url }}"
         frameborder="0"
         loading="lazy"
         style="width: 100%; min-height: 800px; border: none; border-radius: 8px;"
@@ -166,6 +168,12 @@
       ],
       "default": "start",
       "info": "Choose whether this displays the start or end challenge form"
+    },
+    {
+      "type": "text",
+      "id": "challenge_id",
+      "label": "Challenge ID (Optional)",
+      "info": "Optionally specify a specific challenge ID. Leave blank to use the current active challenge. You can find challenge IDs in the app admin panel."
     }
   ]
 }
