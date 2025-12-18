@@ -495,9 +495,24 @@ export default function CustomizeExperience() {
                 )}
 
                 {/* Submit Button */}
-                <s-button submit variant="primary" disabled={isSubmitting}>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  style={{
+                    width: "100%",
+                    padding: "12px 24px",
+                    backgroundColor: "#667eea",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "4px",
+                    fontSize: "16px",
+                    fontWeight: "600",
+                    cursor: isSubmitting ? "not-allowed" : "pointer",
+                    opacity: isSubmitting ? 0.6 : 1,
+                  }}
+                >
                   {isSubmitting ? "Saving..." : "Save Customization Settings"}
-                </s-button>
+                </button>
               </s-stack>
             </Form>
           </s-stack>
