@@ -501,7 +501,7 @@ export default function ChallengeStart() {
           max-width: 600px;
           margin: 40px auto;
           padding: 20px;
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          font-family: 'Futura', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
 
         .challenge-header {
