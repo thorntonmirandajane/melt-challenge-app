@@ -203,19 +203,19 @@ export default function ChallengesManager() {
                     <div className="challenge-stats">
                       <div className="stat">
                         <s-text variant="heading-sm">{challenge.stats.total}</s-text>
-                        <s-text variant="body-xs">Total</s-text>
+                        <s-text variant="body-xs">&nbsp;Total</s-text>
                       </div>
                       <div className="stat">
                         <s-text variant="heading-sm">{challenge.stats.inProgress}</s-text>
-                        <s-text variant="body-xs">In Progress</s-text>
+                        <s-text variant="body-xs">&nbsp;In Progress</s-text>
                       </div>
                       <div className="stat">
                         <s-text variant="heading-sm">{challenge.stats.completed}</s-text>
-                        <s-text variant="body-xs">Completed</s-text>
+                        <s-text variant="body-xs">&nbsp;Completed</s-text>
                       </div>
                       <div className="stat">
                         <s-text variant="heading-sm">{challenge.stats.avgWeightLoss} lbs</s-text>
-                        <s-text variant="body-xs">Avg Loss</s-text>
+                        <s-text variant="body-xs">&nbsp;Avg Loss</s-text>
                       </div>
                     </div>
 

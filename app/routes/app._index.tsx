@@ -152,7 +152,13 @@ export default function Index() {
       <s-page heading="Dashboard">
         <s-section>
           <div className="empty-state">
-            <div className="empty-icon">🚀</div>
+            <div className="empty-icon">
+              <img
+                src="https://cdn.shopify.com/s/files/1/0568/2895/2643/files/Melt_Logo.png?v=1734571840"
+                alt="Melt Logo"
+                style={{ width: "120px", height: "auto" }}
+              />
+            </div>
             <h2>No Active Challenge</h2>
             <p>Create your first challenge to get started!</p>
             <Link to="/app/admin/challenges?new=true" className="create-button">

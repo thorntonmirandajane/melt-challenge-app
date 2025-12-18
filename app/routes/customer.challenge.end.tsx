@@ -1,5 +1,6 @@
 import { redirect, type LoaderFunctionArgs, type ActionFunctionArgs } from "react-router";
 import { useState } from "react";
+import * as React from "react";
 import { Form, useLoaderData, useNavigation, useSubmit } from "react-router";
 import { requireCustomer } from "../utils/customer-auth.server";
 import { canEndChallenge } from "../utils/challenge.server";
@@ -280,6 +281,28 @@ export default function ChallengeEnd() {
     ? (participant.startWeight - parseFloat(weight)).toFixed(1)
     : null;
 
+  // Send height to parent iframe on mount and when content changes
+  React.useEffect(() => {
+    const sendHeight = () => {
+      const height = document.body.scrollHeight;
+      window.parent.postMessage({ type: 'resize', height }, '*');
+    };
+
+    // Send initial height
+    sendHeight();
+
+    // Send height on window resize
+    window.addEventListener('resize', sendHeight);
+
+    // Send height periodically to catch dynamic content
+    const interval = setInterval(sendHeight, 500);
+
+    return () => {
+      window.removeEventListener('resize', sendHeight);
+      clearInterval(interval);
+    };
+  }, [uploading, isSubmitting, weight]);
+
   return (
     <div className="challenge-container" style={{ backgroundColor: settings.backgroundColor, color: settings.textColor }}>
       <div className="challenge-header">
@@ -455,7 +478,7 @@ export default function ChallengeEnd() {
           max-width: 600px;
           margin: 40px auto;
           padding: 20px;
-          font-family: 'Futura', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          font-family: 'Jost', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
 
         .challenge-header {

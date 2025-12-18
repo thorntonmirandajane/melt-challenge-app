@@ -24,7 +24,7 @@
         src="{{ iframe_url }}"
         frameborder="0"
         loading="lazy"
-        style="width: 100%; min-height: 800px; border: none; border-radius: 8px;"
+        style="width: 100%; height: 1000px; border: none; border-radius: 8px;"
       ></iframe>
     </div>
   </div>
@@ -129,9 +129,13 @@
 <script>
   // Auto-resize iframe based on content
   window.addEventListener('message', function(event) {
-    // Security: verify origin matches your app URL
-    const appUrl = "{{ block.settings.app_url }}";
-    if (event.origin !== appUrl) return;
+    // Allow messages from the production app URL
+    const allowedOrigins = [
+      'https://melt-challenge-app.onrender.com',
+      'https://noncotyledonal-kenley-motivative.ngrok-free.dev'
+    ];
+
+    if (!allowedOrigins.includes(event.origin)) return;
 
     if (event.data && event.data.type === 'resize') {
       const iframe = document.getElementById('challenge-iframe');
@@ -144,6 +148,26 @@
     if (event.data && event.data.type === 'redirect') {
       window.location.href = event.data.url;
     }
+  });
+
+  // Initial height setup - observe iframe content
+  document.addEventListener('DOMContentLoaded', function() {
+    const iframe = document.getElementById('challenge-iframe');
+
+    // Set initial height
+    iframe.onload = function() {
+      try {
+        // Try to access iframe content height (will fail due to cross-origin)
+        const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+        if (iframeDoc) {
+          const height = iframeDoc.body.scrollHeight;
+          iframe.style.height = height + 'px';
+        }
+      } catch (e) {
+        // Cross-origin restriction - rely on postMessage instead
+        console.log('Using postMessage for iframe height');
+      }
+    };
   });
 </script>
 

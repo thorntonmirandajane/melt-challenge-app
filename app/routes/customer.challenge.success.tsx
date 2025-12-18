@@ -1,5 +1,6 @@
 import { type LoaderFunctionArgs } from "react-router";
 import { Link, useLoaderData } from "react-router";
+import * as React from "react";
 import { getCustomer } from "../utils/customer-auth.server";
 import { getCustomizationSettings } from "../utils/customization.server";
 
@@ -23,6 +24,28 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 
 export default function ChallengeSuccess() {
   const { customer, type, error, settings } = useLoaderData<typeof loader>();
+
+  // Send height to parent iframe
+  React.useEffect(() => {
+    const sendHeight = () => {
+      const height = document.body.scrollHeight;
+      window.parent.postMessage({ type: 'resize', height }, '*');
+    };
+
+    // Send initial height
+    sendHeight();
+
+    // Send height on window resize
+    window.addEventListener('resize', sendHeight);
+
+    // Send height periodically to catch dynamic content
+    const interval = setInterval(sendHeight, 500);
+
+    return () => {
+      window.removeEventListener('resize', sendHeight);
+      clearInterval(interval);
+    };
+  }, []);
 
   if (error) {
     return (
@@ -134,7 +157,7 @@ const getStyles = (settings: any) => `
     justify-content: center;
     background: linear-gradient(135deg, ${settings.primaryColor} 0%, ${settings.secondaryColor} 100%);
     padding: 20px;
-    font-family: 'Futura', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-family: 'Jost', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   }
 
   .success-card,
