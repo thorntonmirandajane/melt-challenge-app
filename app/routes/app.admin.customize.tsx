@@ -27,45 +27,58 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 // ============================================
 
 export const action = async ({ request }: ActionFunctionArgs) => {
-  const { session } = await authenticate.admin(request);
-  const shop = session.shop;
-  const formData = await request.formData();
+  try {
+    const { session } = await authenticate.admin(request);
+    const shop = session.shop;
+    const formData = await request.formData();
 
-  // Extract all text settings
-  const textSettings = {
-    startFormTitle: formData.get("startFormTitle") as string,
-    startFormWelcomeText: (formData.get("startFormWelcomeText") as string) || null,
-    startFormSubmitButtonText: formData.get("startFormSubmitButtonText") as string,
-    endFormTitle: formData.get("endFormTitle") as string,
-    endFormWelcomeText: (formData.get("endFormWelcomeText") as string) || null,
-    endFormSubmitButtonText: formData.get("endFormSubmitButtonText") as string,
-    successStartTitle: formData.get("successStartTitle") as string,
-    successStartMessage: (formData.get("successStartMessage") as string) || null,
-    successStartSubMessage: (formData.get("successStartSubMessage") as string) || null,
-    successEndTitle: formData.get("successEndTitle") as string,
-    successEndMessage: (formData.get("successEndMessage") as string) || null,
-    successEndSubMessage: (formData.get("successEndSubMessage") as string) || null,
-  };
+    console.log("[Customization] Saving settings for shop:", shop);
 
-  // Extract all color settings
-  const colorSettings = {
-    primaryColor: formData.get("primaryColor") as string,
-    secondaryColor: formData.get("secondaryColor") as string,
-    backgroundColor: formData.get("backgroundColor") as string,
-    textColor: formData.get("textColor") as string,
-    buttonColor: formData.get("buttonColor") as string,
-    buttonHoverColor: formData.get("buttonHoverColor") as string,
-    inputBackgroundColor: formData.get("inputBackgroundColor") as string,
-    inputBorderColor: formData.get("inputBorderColor") as string,
-  };
+    // Extract all text settings
+    const textSettings = {
+      startFormTitle: formData.get("startFormTitle") as string,
+      startFormWelcomeText: (formData.get("startFormWelcomeText") as string) || null,
+      startFormSubmitButtonText: formData.get("startFormSubmitButtonText") as string,
+      endFormTitle: formData.get("endFormTitle") as string,
+      endFormWelcomeText: (formData.get("endFormWelcomeText") as string) || null,
+      endFormSubmitButtonText: formData.get("endFormSubmitButtonText") as string,
+      successStartTitle: formData.get("successStartTitle") as string,
+      successStartMessage: (formData.get("successStartMessage") as string) || null,
+      successStartSubMessage: (formData.get("successStartSubMessage") as string) || null,
+      successEndTitle: formData.get("successEndTitle") as string,
+      successEndMessage: (formData.get("successEndMessage") as string) || null,
+      successEndSubMessage: (formData.get("successEndSubMessage") as string) || null,
+    };
 
-  // Save all settings to database
-  await updateCustomizationSettings(shop, {
-    ...textSettings,
-    ...colorSettings,
-  });
+    // Extract all color settings
+    const colorSettings = {
+      primaryColor: formData.get("primaryColor") as string,
+      secondaryColor: formData.get("secondaryColor") as string,
+      backgroundColor: formData.get("backgroundColor") as string,
+      textColor: formData.get("textColor") as string,
+      buttonColor: formData.get("buttonColor") as string,
+      buttonHoverColor: formData.get("buttonHoverColor") as string,
+      inputBackgroundColor: formData.get("inputBackgroundColor") as string,
+      inputBorderColor: formData.get("inputBorderColor") as string,
+    };
 
-  return redirect("/app/admin/customize?success=true");
+    const allSettings = {
+      ...textSettings,
+      ...colorSettings,
+    };
+
+    console.log("[Customization] Settings to save:", JSON.stringify(allSettings, null, 2));
+
+    // Save all settings to database
+    const result = await updateCustomizationSettings(shop, allSettings);
+
+    console.log("[Customization] Settings saved successfully:", result.id);
+
+    return redirect("/app/admin/customize?success=true");
+  } catch (error) {
+    console.error("[Customization] Error saving settings:", error);
+    throw error;
+  }
 };
 
 // ============================================
