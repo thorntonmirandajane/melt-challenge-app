@@ -231,6 +231,70 @@ export default function ChallengeDetail() {
     }
   };
 
+  const handleExportCSV = () => {
+    // Prepare CSV headers
+    const headers = [
+      "Rank",
+      "First Name",
+      "Last Name",
+      "Email",
+      "Status",
+      "Start Weight (lbs)",
+      "End Weight (lbs)",
+      "Weight Loss (lbs)",
+      "% Body Weight",
+      "Order Count",
+      "Total Spent ($)",
+      "Start Date",
+      "End Date"
+    ];
+
+    // Prepare CSV rows
+    const rows = sortedParticipants.map((p, index) => [
+      index + 1,
+      p.firstName || "",
+      p.lastName || "",
+      p.email,
+      p.status.replace("_", " "),
+      p.startWeight || "",
+      p.endWeight || "",
+      p.weightLoss ? p.weightLoss.toFixed(1) : "",
+      p.percentBodyWeight ? p.percentBodyWeight.toFixed(1) : "",
+      p.orderCount,
+      p.totalSpent.toFixed(2),
+      p.startDate ? new Date(p.startDate).toLocaleDateString() : "",
+      p.endDate ? new Date(p.endDate).toLocaleDateString() : ""
+    ]);
+
+    // Combine headers and rows
+    const csvContent = [
+      headers.join(","),
+      ...rows.map(row =>
+        row.map(cell => {
+          // Escape cells that contain commas, quotes, or newlines
+          const cellStr = String(cell);
+          if (cellStr.includes(",") || cellStr.includes('"') || cellStr.includes("\n")) {
+            return `"${cellStr.replace(/"/g, '""')}"`;
+          }
+          return cellStr;
+        }).join(",")
+      )
+    ].join("\n");
+
+    // Create blob and download
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+
+    link.setAttribute("href", url);
+    link.setAttribute("download", `${challenge.name.replace(/[^a-z0-9]/gi, "_")}_participants_${new Date().toISOString().split("T")[0]}.csv`);
+    link.style.visibility = "hidden";
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <s-page heading={challenge.name}>
       <Link to="/app/admin/challenges" slot="primary-action">
@@ -286,6 +350,15 @@ export default function ChallengeDetail() {
 
       {/* Participants Table */}
       <s-section heading="Participants">
+        {/* Export Button */}
+        {sortedParticipants.length > 0 && (
+          <div className="export-controls">
+            <button onClick={handleExportCSV} className="export-btn">
+              📊 Export to CSV
+            </button>
+          </div>
+        )}
+
         {/* Sort Controls */}
         <div className="sort-controls">
           <span className="sort-label">Sort by:</span>
@@ -508,6 +581,33 @@ export default function ChallengeDetail() {
 
         .stat-card.highlight .stat-label {
           color: rgba(255, 255, 255, 0.9);
+        }
+
+        .export-controls {
+          display: flex;
+          justify-content: flex-end;
+          margin-bottom: 16px;
+        }
+
+        .export-btn {
+          padding: 10px 20px;
+          background: #10b981;
+          color: white;
+          border: none;
+          border-radius: 6px;
+          cursor: pointer;
+          font-size: 14px;
+          font-weight: 600;
+          transition: all 0.2s;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .export-btn:hover {
+          background: #059669;
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
         }
 
         .sort-controls {
