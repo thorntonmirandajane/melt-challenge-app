@@ -46,6 +46,7 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
       totalSpent: participant.totalSpent,
     },
     challenge: {
+      id: participant.challenge.id,
       name: participant.challenge.name,
       startDate: participant.challenge.startDate,
       endDate: participant.challenge.endDate,
@@ -96,8 +97,8 @@ export default function ParticipantDetail() {
 
   return (
     <s-page heading="Participant Details">
-      <Link to="/app/admin/dashboard" slot="back-action">
-        ← Back to Dashboard
+      <Link to={`/app/admin/challenge/${challenge.id}`} slot="back-action">
+        ← Back to Challenge
       </Link>
 
       {/* Participant Info */}
