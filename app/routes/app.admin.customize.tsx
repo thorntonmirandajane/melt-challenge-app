@@ -34,20 +34,26 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
     console.log("[Customization] Saving settings for shop:", shop);
 
+    // Helper function to convert empty strings to null
+    const getFormValue = (key: string): string | null => {
+      const value = formData.get(key) as string;
+      return value && value.trim() !== "" ? value.trim() : null;
+    };
+
     // Extract all text settings
     const textSettings = {
-      startFormTitle: formData.get("startFormTitle") as string,
-      startFormWelcomeText: (formData.get("startFormWelcomeText") as string) || null,
-      startFormSubmitButtonText: formData.get("startFormSubmitButtonText") as string,
-      endFormTitle: formData.get("endFormTitle") as string,
-      endFormWelcomeText: (formData.get("endFormWelcomeText") as string) || null,
-      endFormSubmitButtonText: formData.get("endFormSubmitButtonText") as string,
-      successStartTitle: formData.get("successStartTitle") as string,
-      successStartMessage: (formData.get("successStartMessage") as string) || null,
-      successStartSubMessage: (formData.get("successStartSubMessage") as string) || null,
-      successEndTitle: formData.get("successEndTitle") as string,
-      successEndMessage: (formData.get("successEndMessage") as string) || null,
-      successEndSubMessage: (formData.get("successEndSubMessage") as string) || null,
+      startFormTitle: getFormValue("startFormTitle"),
+      startFormWelcomeText: getFormValue("startFormWelcomeText"),
+      startFormSubmitButtonText: getFormValue("startFormSubmitButtonText"),
+      endFormTitle: getFormValue("endFormTitle"),
+      endFormWelcomeText: getFormValue("endFormWelcomeText"),
+      endFormSubmitButtonText: getFormValue("endFormSubmitButtonText"),
+      successStartTitle: getFormValue("successStartTitle"),
+      successStartMessage: getFormValue("successStartMessage"),
+      successStartSubMessage: getFormValue("successStartSubMessage"),
+      successEndTitle: getFormValue("successEndTitle"),
+      successEndMessage: getFormValue("successEndMessage"),
+      successEndSubMessage: getFormValue("successEndSubMessage"),
     };
 
     // Extract all color settings
@@ -92,6 +98,10 @@ export default function CustomizeExperience() {
 
   const [activeTab, setActiveTab] = useState<"text" | "colors">("text");
 
+  // Check for success parameter in URL
+  const url = typeof window !== 'undefined' ? new URL(window.location.href) : null;
+  const showSuccess = url?.searchParams.get('success') === 'true';
+
   return (
     <s-page heading="Customize Forms">
       <s-button slot="primary-action" variant="primary" onclick="window.location.href='/app'">
@@ -99,6 +109,34 @@ export default function CustomizeExperience() {
       </s-button>
 
       <s-section>
+        {showSuccess && (
+          <div style={{
+            padding: '16px',
+            marginBottom: '20px',
+            backgroundColor: '#d4edda',
+            color: '#155724',
+            border: '1px solid #c3e6cb',
+            borderRadius: '4px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}>
+            <span style={{ fontWeight: '600' }}>✓ Settings saved successfully!</span>
+            <button
+              onClick={() => window.history.replaceState({}, '', '/app/admin/customize')}
+              style={{
+                background: 'none',
+                border: 'none',
+                fontSize: '20px',
+                cursor: 'pointer',
+                color: '#155724'
+              }}
+            >
+              ×
+            </button>
+          </div>
+        )}
+
         <s-card>
           <s-stack vertical spacing="loose">
             <s-text variant="headingMd">Customize Challenge Forms</s-text>
