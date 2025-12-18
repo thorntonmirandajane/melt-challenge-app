@@ -154,7 +154,7 @@ export default function Index() {
           <div className="empty-state">
             <div className="empty-icon">
               <img
-                src="https://cdn.shopify.com/s/files/1/0568/2895/2643/files/Melt_Logo.png?v=1734571840"
+                src="https://cdn.shopify.com/s/files/1/0829/1319/8372/files/ChatGPT_Image_Dec_18_2025_12_14_23_PM.png?v=1766086907"
                 alt="Melt Logo"
                 style={{ width: "120px", height: "auto" }}
               />
@@ -260,24 +260,24 @@ export default function Index() {
       <s-section>
         <s-stack direction="inline" gap="base" wrap>
           <s-card>
-            <s-stack direction="block" gap="tight">
-              <s-text variant="heading-sm">Total Participants</s-text>
-              <s-text variant="heading-2xl">{stats.total}</s-text>
-            </s-stack>
+            <div className="stat-card">
+              <div className="stat-number">{stats.total}</div>
+              <div className="stat-label">Total<br />Participants</div>
+            </div>
           </s-card>
 
           <s-card>
-            <s-stack direction="block" gap="tight">
-              <s-text variant="heading-sm">Start Forms Submitted</s-text>
-              <s-text variant="heading-2xl">{stats.startFormsSubmitted}</s-text>
-            </s-stack>
+            <div className="stat-card">
+              <div className="stat-number">{stats.startFormsSubmitted}</div>
+              <div className="stat-label">Start Forms<br />Submitted</div>
+            </div>
           </s-card>
 
           <s-card>
-            <s-stack direction="block" gap="tight">
-              <s-text variant="heading-sm">End Forms Submitted</s-text>
-              <s-text variant="heading-2xl">{stats.endFormsSubmitted}</s-text>
-            </s-stack>
+            <div className="stat-card">
+              <div className="stat-number">{stats.endFormsSubmitted}</div>
+              <div className="stat-label">End Forms<br />Submitted</div>
+            </div>
           </s-card>
         </s-stack>
       </s-section>
@@ -504,6 +504,26 @@ export default function Index() {
 
         .view-link:hover {
           text-decoration: underline;
+        }
+
+        .stat-card {
+          text-align: center;
+          padding: 20px;
+        }
+
+        .stat-number {
+          font-size: 48px;
+          font-weight: 700;
+          color: #3b82f6;
+          margin-bottom: 8px;
+          line-height: 1;
+        }
+
+        .stat-label {
+          font-size: 14px;
+          color: #6b7280;
+          font-weight: 500;
+          line-height: 1.4;
         }
       `}</style>
     </s-page>
