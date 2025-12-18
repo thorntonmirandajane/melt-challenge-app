@@ -26,7 +26,12 @@ export default function App() {
       <style>{`
         /* Increase max-width for all admin pages */
         s-page {
-          --s-page-max-width: 1400px;
+          --s-page-max-width: 1400px !important;
+        }
+
+        /* Ensure sections also expand to use full width */
+        s-section {
+          max-width: 100% !important;
         }
       `}</style>
     </AppProvider>
