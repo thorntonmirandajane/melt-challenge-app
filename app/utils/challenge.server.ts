@@ -287,7 +287,8 @@ export async function createChallenge(
   name: string,
   startDate: Date,
   endDate: Date,
-  description?: string
+  description?: string,
+  customerTag?: string
 ): Promise<Challenge> {
   return prisma.challenge.create({
     data: {
@@ -296,6 +297,7 @@ export async function createChallenge(
       description,
       startDate,
       endDate,
+      customerTag,
       isActive: true,
     },
   });
@@ -330,6 +332,7 @@ export async function updateChallenge(
     description?: string;
     startDate?: Date;
     endDate?: Date;
+    customerTag?: string;
     isActive?: boolean;
   }
 ): Promise<Challenge> {

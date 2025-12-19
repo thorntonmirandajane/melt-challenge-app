@@ -297,8 +297,11 @@ export default function ChallengeDetail() {
 
   return (
     <s-page heading={challenge.name}>
-      <Link to="/app/admin/challenges" slot="primary-action">
-        <s-button>← Back to Challenges</s-button>
+      <Link to="/app/admin/challenges" slot="back-action">
+        ← Back to Challenges
+      </Link>
+      <Link to={`/app/admin/challenge/${challenge.id}/edit`} slot="primary-action">
+        <s-button>Edit Challenge</s-button>
       </Link>
 
       {/* Challenge Info */}

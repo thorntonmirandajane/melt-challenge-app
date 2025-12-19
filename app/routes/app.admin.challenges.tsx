@@ -58,13 +58,16 @@ export const action = async ({ request }: ActionFunctionArgs) => {
      }), { status: 400, headers: { "Content-Type": "application/json" } });
   }
 
+  const customerTag = formData.get("customerTag") as string;
+
   try {
     await createChallenge(
       session.shop,
       name,
       new Date(startDate),
       new Date(endDate),
-      description || undefined
+      description || undefined,
+      customerTag || undefined
     );
 
     return redirect("/app/admin/challenges?created=true");
@@ -92,6 +95,7 @@ export default function ChallengesManager() {
     description: "",
     startDate: "",
     endDate: "",
+    customerTag: "",
   });
 
   return (
@@ -162,6 +166,22 @@ export default function ChallengesManager() {
                   />
                 </div>
               </s-stack>
+
+              <div className="form-field">
+                <label htmlFor="customerTag">Customer Tag (Optional)</label>
+                <input
+                  type="text"
+                  id="customerTag"
+                  name="customerTag"
+                  value={formData.customerTag}
+                  onChange={(e) => setFormData({ ...formData, customerTag: e.target.value })}
+                  placeholder="e.g., 2025-Summer-Challenge"
+                  disabled={isSubmitting}
+                />
+                <div className="help-text">
+                  This tag will be automatically applied to all customers who join this challenge in Shopify.
+                </div>
+              </div>
 
               <s-button type="submit" disabled={isSubmitting}>
                 {isSubmitting ? "Creating..." : "Create Challenge"}

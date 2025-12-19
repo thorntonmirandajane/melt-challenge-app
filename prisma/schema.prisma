@@ -45,6 +45,7 @@ model Challenge {
   startDate   DateTime // When challenge starts
   endDate     DateTime // When challenge ends
   isActive    Boolean  @default(true) // Can be manually disabled
+  customerTag String?  // Optional tag to apply to customers who join (e.g., "2025-Challenge")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
