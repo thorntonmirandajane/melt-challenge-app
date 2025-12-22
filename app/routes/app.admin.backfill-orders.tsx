@@ -106,16 +106,17 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           const ordersCount = customer.numberOfOrders || 0;
           const totalSpent = parseFloat(customer.amountSpent?.amount || "0");
 
+          // Only update order data, NOT customerId to avoid unique constraint violation
+          // The customerId will be updated when they resubmit the form
           await prisma.participant.update({
             where: { id: participant.id },
             data: {
-              customerId,
               ordersCount,
               totalSpent,
             },
           });
 
-          console.log(`✅ Updated ${participant.email}: ${ordersCount} orders, $${totalSpent.toFixed(2)} spent, customerId: ${customerId}`);
+          console.log(`✅ Updated ${participant.email}: ${ordersCount} orders, $${totalSpent.toFixed(2)} spent`);
           updated++;
           continue;
         } else {
