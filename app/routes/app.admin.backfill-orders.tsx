@@ -103,7 +103,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           customerId = customer.id;
           needsCustomerIdUpdate = true;
 
-          const ordersCount = customer.numberOfOrders || 0;
+          const ordersCount = parseInt(customer.numberOfOrders) || 0;
           const totalSpent = parseFloat(customer.amountSpent?.amount || "0");
 
           // Only update order data, NOT customerId to avoid unique constraint violation
