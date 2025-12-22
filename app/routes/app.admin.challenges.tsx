@@ -262,11 +262,6 @@ export default function ChallengesManager() {
                           View Details
                         </Link>
                       </div>
-                      <div className="edit-challenge-link">
-                        <Link to={`/app/admin/challenge/${challenge.id}/edit`} className="edit-challenge-btn">
-                          Edit
-                        </Link>
-                      </div>
                       <Form method="post" className="delete-form">
                         <input type="hidden" name="_action" value="delete" />
                         <input type="hidden" name="challengeId" value={challenge.id} />
@@ -406,12 +401,11 @@ export default function ChallengesManager() {
 
         .challenge-actions {
           display: grid;
-          grid-template-columns: 2fr 1fr 1fr;
+          grid-template-columns: 2fr 1fr;
           gap: 12px;
         }
 
         .view-challenge-link,
-        .edit-challenge-link,
         .delete-form {
           display: flex;
         }
