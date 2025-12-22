@@ -1,7 +1,7 @@
 import { redirect, type LoaderFunctionArgs, type ActionFunctionArgs, useLoaderData, useNavigation, Form, useRouteError, Link } from "react-router";
 import { useState } from "react";
 import { authenticate } from "../shopify.server";
-import { getAllChallenges, createChallenge, getChallengeStats } from "../utils/challenge.server";
+import { getAllChallenges, createChallenge, getChallengeStats, deleteChallenge } from "../utils/challenge.server";
 import { validateAdminChallengeForm } from "../utils/validation";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 
@@ -31,13 +31,32 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 };
 
 // ============================================
-// ACTION - Create new challenge
+// ACTION - Create or Delete challenge
 // ============================================
 
 export const action = async ({ request }: ActionFunctionArgs) => {
   const { session } = await authenticate.admin(request);
 
   const formData = await request.formData();
+  const actionType = formData.get("_action") as string;
+
+  // Handle delete
+  if (actionType === "delete") {
+    const challengeId = formData.get("challengeId") as string;
+
+    try {
+      await deleteChallenge(challengeId);
+      return redirect("/app/admin/challenges?deleted=true");
+    } catch (error) {
+      console.error("Error deleting challenge:", error);
+      return new Response(JSON.stringify({
+        success: false,
+        errors: { general: "Failed to delete challenge" },
+      }), { status: 500, headers: { "Content-Type": "application/json" } });
+    }
+  }
+
+  // Handle create
   const name = formData.get("name") as string;
   const description = formData.get("description") as string;
   const startDate = formData.get("startDate") as string;
@@ -52,7 +71,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   });
 
   if (!validation.valid) {
-    return new Response(JSON.stringify({ 
+    return new Response(JSON.stringify({
       success: false,
       errors: validation.errors,
      }), { status: 400, headers: { "Content-Type": "application/json" } });
@@ -239,9 +258,26 @@ export default function ChallengesManager() {
                       </div>
                     </div>
 
-                    <Link to={`/app/admin/challenge/${challenge.id}`} className="view-challenge-btn">
-                      View Details →
-                    </Link>
+                    <div className="challenge-actions">
+                      <Link to={`/app/admin/challenge/${challenge.id}`} className="view-challenge-btn">
+                        View Details →
+                      </Link>
+                      <Form method="post" className="delete-form">
+                        <input type="hidden" name="_action" value="delete" />
+                        <input type="hidden" name="challengeId" value={challenge.id} />
+                        <button
+                          type="submit"
+                          className="delete-challenge-btn"
+                          onClick={(e) => {
+                            if (!confirm(`Are you sure you want to delete "${challenge.name}"? This will also delete all ${challenge.stats.total} participants and their submissions. This action cannot be undone.`)) {
+                              e.preventDefault();
+                            }
+                          }}
+                        >
+                          Delete Challenge
+                        </button>
+                      </Form>
+                    </div>
                   </s-stack>
                 </s-card>
               );
@@ -378,6 +414,38 @@ export default function ChallengesManager() {
         .view-challenge-btn:hover {
           background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
           box-shadow: 0 6px 16px rgba(59, 130, 246, 0.3);
+          transform: translateY(-2px);
+        }
+
+        .challenge-actions {
+          display: flex;
+          gap: 12px;
+          margin-top: 16px;
+        }
+
+        .delete-form {
+          flex: 1;
+        }
+
+        .delete-challenge-btn {
+          display: block;
+          width: 100%;
+          text-align: center;
+          padding: 12px 20px;
+          background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+          color: white;
+          text-decoration: none;
+          border: none;
+          border-radius: 8px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          box-shadow: 0 4px 12px rgba(220, 38, 38, 0.2);
+        }
+
+        .delete-challenge-btn:hover {
+          background: linear-gradient(135deg, #b91c1c 0%, #991b1b 100%);
+          box-shadow: 0 6px 16px rgba(220, 38, 38, 0.3);
           transform: translateY(-2px);
         }
 
