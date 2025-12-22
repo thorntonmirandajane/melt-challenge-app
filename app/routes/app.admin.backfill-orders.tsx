@@ -68,60 +68,12 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     try {
       let customerId = participant.customerId;
 
-      // If participant has email: fallback ID, try to look up by email
+      // If participant has email: fallback ID, skip it
+      // The customer needs to be logged in for us to get their real Shopify customer ID
       if (customerId && customerId.startsWith("email:")) {
-        console.log(`Participant ${participant.email} has email fallback ID, trying email lookup...`);
-
-        // Try to find customer by email
-        const emailLookupResponse = await admin.graphql(
-          `#graphql
-          query getCustomerByEmail($email: String!) {
-            customers(first: 1, query: $email) {
-              edges {
-                node {
-                  id
-                  email
-                  numberOfOrders
-                  amountSpent {
-                    amount
-                  }
-                }
-              }
-            }
-          }`,
-          {
-            variables: {
-              email: `email:${participant.email}`,
-            },
-          }
-        );
-
-        const emailData = await emailLookupResponse.json();
-        if (emailData.data?.customers?.edges?.length > 0) {
-          const customer = emailData.data.customers.edges[0].node;
-          customerId = customer.id;
-
-          // Update participant with real customer ID
-          const ordersCount = customer.numberOfOrders || 0;
-          const totalSpent = parseFloat(customer.amountSpent?.amount || "0");
-
-          await prisma.participant.update({
-            where: { id: participant.id },
-            data: {
-              customerId: customer.id,
-              ordersCount,
-              totalSpent,
-            },
-          });
-
-          console.log(`Updated ${participant.email} (found via email): ${ordersCount} orders, $${totalSpent.toFixed(2)} spent`);
-          updated++;
-          continue;
-        } else {
-          console.log(`No Shopify customer found for ${participant.email}`);
-          skipped++;
-          continue;
-        }
+        console.log(`Skipping ${participant.email} - email fallback requires customer to be logged in`);
+        skipped++;
+        continue;
       }
 
       // Skip if still no valid customer ID

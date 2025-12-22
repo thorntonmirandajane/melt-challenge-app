@@ -134,21 +134,29 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     try {
       const { admin: authAdmin } = await authenticate.admin(request);
       admin = authAdmin;
+      console.log(`🔍 Looking up Shopify customer by email: ${email}`);
       shopifyCustomer = await lookupCustomerByEmail(admin, email);
 
       if (shopifyCustomer) {
+        console.log(`✅ Found Shopify customer:`, {
+          id: shopifyCustomer.id,
+          email: shopifyCustomer.email,
+          ordersCount: shopifyCustomer.ordersCount,
+          totalSpent: shopifyCustomer.totalSpent,
+        });
         customerId = shopifyCustomer.id;
         firstName = firstName || shopifyCustomer.firstName || firstNameInput;
         lastName = lastName || shopifyCustomer.lastName || lastNameInput;
         ordersCount = shopifyCustomer.ordersCount;
         totalSpent = parseFloat(shopifyCustomer.totalSpent);
       } else {
+        console.log(`❌ No Shopify customer found for email: ${email}`);
         // Use form input if no Shopify customer found
         firstName = firstName || firstNameInput;
         lastName = lastName || lastNameInput;
       }
     } catch (error) {
-      console.log("Could not lookup Shopify customer:", error);
+      console.log("❌ Could not lookup Shopify customer:", error);
       // Use form input as fallback
       firstName = firstName || firstNameInput;
       lastName = lastName || lastNameInput;
@@ -207,7 +215,13 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     console.log("Photos saved successfully");
 
     // Update participant status and order data
-    console.log("Updating participant status");
+    console.log("📝 Updating participant with order data:", {
+      participantId: participant.id,
+      email: participant.email,
+      customerId,
+      ordersCount,
+      totalSpent,
+    });
     await prisma.participant.update({
       where: { id: participant.id },
       data: {
@@ -218,7 +232,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         totalSpent: totalSpent,
       },
     });
-    console.log("Participant updated successfully");
+    console.log("✅ Participant updated successfully with order data");
 
     console.log("SUCCESS: Redirecting to success page");
     return redirect("/customer/challenge/success?type=start");

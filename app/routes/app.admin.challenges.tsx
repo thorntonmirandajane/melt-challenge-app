@@ -223,50 +223,48 @@ export default function ChallengesManager() {
 
               return (
                 <s-card key={challenge.id}>
-                  <s-stack direction="block" gap="base">
+                  <div className="challenge-card-content">
                     <div className="challenge-header">
-                      <s-text variant="heading-md">{challenge.name}</s-text>
+                      <h3 className="challenge-title">{challenge.name}</h3>
                       {isActive && <span className="active-badge">Active</span>}
                     </div>
 
                     {challenge.description && (
-                      <s-text variant="body-sm">{challenge.description}</s-text>
+                      <p className="challenge-description">{challenge.description}</p>
                     )}
 
                     <div className="challenge-dates">
-                      <s-text variant="body-sm">
-                        {new Date(challenge.startDate).toLocaleDateString()} - {new Date(challenge.endDate).toLocaleDateString()}
-                      </s-text>
+                      {new Date(challenge.startDate).toLocaleDateString()} - {new Date(challenge.endDate).toLocaleDateString()}
                     </div>
 
                     <div className="challenge-stats">
                       <div className="stat">
-                        <s-text variant="heading-sm">{challenge.stats.total}</s-text>
-                        <s-text variant="body-xs">&nbsp;Total</s-text>
+                        <span className="stat-value">{challenge.stats.total}</span>
+                        <span className="stat-label">Total</span>
                       </div>
                       <div className="stat">
-                        <s-text variant="heading-sm">{challenge.stats.inProgress}</s-text>
-                        <s-text variant="body-xs">&nbsp;In Progress</s-text>
+                        <span className="stat-value">{challenge.stats.inProgress}</span>
+                        <span className="stat-label">In Progress</span>
                       </div>
                       <div className="stat">
-                        <s-text variant="heading-sm">{challenge.stats.completed}</s-text>
-                        <s-text variant="body-xs">&nbsp;Completed</s-text>
+                        <span className="stat-value">{challenge.stats.completed}</span>
+                        <span className="stat-label">Completed</span>
                       </div>
                       <div className="stat">
-                        <s-text variant="heading-sm">{challenge.stats.avgWeightLoss} lbs</s-text>
-                        <s-text variant="body-xs">&nbsp;Avg Loss</s-text>
+                        <span className="stat-value">{challenge.stats.avgWeightLoss} lbs</span>
+                        <span className="stat-label">Avg Loss</span>
                       </div>
                     </div>
 
                     <div className="challenge-actions">
                       <div className="view-challenge-link">
                         <Link to={`/app/admin/challenge/${challenge.id}`} className="view-challenge-btn">
-                          View Details →
+                          View Details
                         </Link>
                       </div>
                       <div className="edit-challenge-link">
                         <Link to={`/app/admin/challenge/${challenge.id}/edit`} className="edit-challenge-btn">
-                          Edit Challenge
+                          Edit
                         </Link>
                       </div>
                       <Form method="post" className="delete-form">
@@ -281,11 +279,11 @@ export default function ChallengesManager() {
                             }
                           }}
                         >
-                          Delete Challenge
+                          Delete
                         </button>
                       </Form>
                     </div>
-                  </s-stack>
+                  </div>
                 </s-card>
               );
             })}
@@ -321,175 +319,159 @@ export default function ChallengesManager() {
         }
 
         .challenges-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-          gap: 20px;
+          display: flex;
+          flex-direction: column;
+          gap: 24px;
         }
 
         s-card {
-          border: 2px solid #e5e7eb;
-          border-radius: 12px;
-          transition: all 0.3s ease;
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-          padding: 24px;
+          border: 1px solid #e5e7eb;
+          border-radius: 8px;
+          background: white;
+          overflow: hidden;
         }
 
-        s-card:hover {
-          border-color: #3b82f6;
-          box-shadow: 0 8px 24px rgba(59, 130, 246, 0.15);
-          transform: translateY(-4px);
+        .challenge-card-content {
+          padding: 24px;
         }
 
         .challenge-header {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          padding-bottom: 12px;
-          border-bottom: 2px solid #f3f4f6;
+          margin-bottom: 16px;
+        }
+
+        .challenge-title {
+          font-size: 20px;
+          font-weight: 600;
+          color: #111827;
+          margin: 0;
         }
 
         .active-badge {
-          background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+          background: #10b981;
           color: white;
-          padding: 6px 12px;
-          border-radius: 20px;
-          font-size: 11px;
-          font-weight: 700;
+          padding: 4px 12px;
+          border-radius: 12px;
+          font-size: 12px;
+          font-weight: 600;
           text-transform: uppercase;
           letter-spacing: 0.5px;
-          box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+        }
+
+        .challenge-description {
+          color: #6b7280;
+          font-size: 14px;
+          margin-bottom: 12px;
+          line-height: 1.5;
         }
 
         .challenge-dates {
           color: #6b7280;
           font-size: 14px;
-          display: flex;
-          align-items: center;
-          gap: 6px;
-        }
-
-        .challenge-dates::before {
-          content: "📅";
-          font-size: 16px;
+          margin-bottom: 20px;
         }
 
         .challenge-stats {
           display: grid;
           grid-template-columns: repeat(4, 1fr);
-          gap: 12px;
-          padding: 16px;
+          gap: 16px;
+          padding: 20px;
           background: #f9fafb;
           border-radius: 8px;
-          margin-top: 12px;
+          margin-bottom: 20px;
         }
 
         .stat {
           text-align: center;
-          padding: 8px;
-          background: white;
-          border-radius: 6px;
-          border: 1px solid #e5e7eb;
         }
 
-        .stat s-text[variant="heading-sm"] {
-          color: #3b82f6;
+        .stat-value {
+          display: block;
+          font-size: 24px;
           font-weight: 700;
+          color: #111827;
+          margin-bottom: 4px;
         }
 
-        .stat s-text[variant="body-xs"] {
+        .stat-label {
+          display: block;
+          font-size: 12px;
           color: #6b7280;
           text-transform: uppercase;
-          font-size: 10px;
-          font-weight: 600;
           letter-spacing: 0.5px;
-        }
-
-        .view-challenge-btn {
-          display: block;
-          text-align: center;
-          padding: 12px 20px;
-          background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-          color: white;
-          text-decoration: none;
-          border-radius: 8px;
-          font-weight: 600;
-          margin-top: 16px;
-          transition: all 0.3s ease;
-          box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
-        }
-
-        .view-challenge-btn:hover {
-          background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-          box-shadow: 0 6px 16px rgba(59, 130, 246, 0.3);
-          transform: translateY(-2px);
+          font-weight: 500;
         }
 
         .challenge-actions {
           display: grid;
-          grid-template-columns: 1fr 1fr 1fr;
+          grid-template-columns: 2fr 1fr 1fr;
           gap: 12px;
-          margin-top: 16px;
         }
 
         .view-challenge-link,
-        .delete-form,
-        .edit-challenge-link {
+        .edit-challenge-link,
+        .delete-form {
           display: flex;
         }
 
-        .edit-challenge-btn {
-          display: block;
+        .view-challenge-btn,
+        .edit-challenge-btn,
+        .delete-challenge-btn {
+          display: flex;
+          align-items: center;
+          justify-content: center;
           width: 100%;
-          text-align: center;
-          padding: 12px 20px;
-          background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-          color: white;
-          text-decoration: none;
-          border-radius: 8px;
+          padding: 12px 16px;
+          border-radius: 6px;
+          font-size: 14px;
           font-weight: 600;
-          transition: all 0.3s ease;
-          box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2);
+          text-decoration: none;
+          transition: all 0.2s ease;
+          border: none;
+          cursor: pointer;
+        }
+
+        .view-challenge-btn {
+          background: #2563eb;
+          color: white;
+        }
+
+        .view-challenge-btn:hover {
+          background: #1d4ed8;
+        }
+
+        .edit-challenge-btn {
+          background: #f59e0b;
+          color: white;
         }
 
         .edit-challenge-btn:hover {
-          background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
-          box-shadow: 0 6px 16px rgba(245, 158, 11, 0.3);
-          transform: translateY(-2px);
+          background: #d97706;
         }
 
         .delete-challenge-btn {
-          display: block;
-          width: 100%;
-          text-align: center;
-          padding: 12px 20px;
-          background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+          background: #dc2626;
           color: white;
-          text-decoration: none;
-          border: none;
-          border-radius: 8px;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.3s ease;
-          box-shadow: 0 4px 12px rgba(220, 38, 38, 0.2);
         }
 
         .delete-challenge-btn:hover {
-          background: linear-gradient(135deg, #b91c1c 0%, #991b1b 100%);
-          box-shadow: 0 6px 16px rgba(220, 38, 38, 0.3);
-          transform: translateY(-2px);
+          background: #b91c1c;
         }
 
         @media (max-width: 768px) {
-          .challenges-grid {
-            grid-template-columns: 1fr;
-          }
-
           .challenge-stats {
             grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
           }
 
           .challenge-actions {
             grid-template-columns: 1fr;
+          }
+
+          .stat-value {
+            font-size: 20px;
           }
         }
       `}</style>
