@@ -121,8 +121,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       lastName = customer.lastName;
       shop = customer.shop;
     } catch (error) {
-      // Not logged in - try to get shop from session or use bowmar-nutrition-test as default
-      shop = "bowmar-nutrition-test.myshopify.com";
+      // Not logged in - use production shop
+      shop = "bowmarnutrition.myshopify.com";
       console.log("User not logged in, using default shop:", shop);
     }
 

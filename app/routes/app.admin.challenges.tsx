@@ -259,9 +259,16 @@ export default function ChallengesManager() {
                     </div>
 
                     <div className="challenge-actions">
-                      <Link to={`/app/admin/challenge/${challenge.id}`} className="view-challenge-btn">
-                        View Details →
-                      </Link>
+                      <div className="view-challenge-link">
+                        <Link to={`/app/admin/challenge/${challenge.id}`} className="view-challenge-btn">
+                          View Details →
+                        </Link>
+                      </div>
+                      <div className="edit-challenge-link">
+                        <Link to={`/app/admin/challenge/${challenge.id}/edit`} className="edit-challenge-btn">
+                          Edit Challenge
+                        </Link>
+                      </div>
                       <Form method="post" className="delete-form">
                         <input type="hidden" name="_action" value="delete" />
                         <input type="hidden" name="challengeId" value={challenge.id} />
@@ -421,10 +428,42 @@ export default function ChallengesManager() {
           display: flex;
           gap: 12px;
           margin-top: 16px;
+          flex-wrap: wrap;
+        }
+
+        .view-challenge-link {
+          flex: 1;
+          min-width: 150px;
         }
 
         .delete-form {
           flex: 1;
+          min-width: 150px;
+        }
+
+        .edit-challenge-link {
+          flex: 1;
+          min-width: 150px;
+        }
+
+        .edit-challenge-btn {
+          display: block;
+          width: 100%;
+          text-align: center;
+          padding: 12px 20px;
+          background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+          color: white;
+          text-decoration: none;
+          border-radius: 8px;
+          font-weight: 600;
+          transition: all 0.3s ease;
+          box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2);
+        }
+
+        .edit-challenge-btn:hover {
+          background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+          box-shadow: 0 6px 16px rgba(245, 158, 11, 0.3);
+          transform: translateY(-2px);
         }
 
         .delete-challenge-btn {

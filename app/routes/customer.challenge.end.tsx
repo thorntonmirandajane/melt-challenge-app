@@ -90,8 +90,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       customer = await requireCustomer(request);
       shop = customer.shop;
     } catch (error) {
-      // Not logged in - use default shop
-      shop = "bowmar-nutrition-test.myshopify.com";
+      // Not logged in - use production shop
+      shop = "bowmarnutrition.myshopify.com";
       console.log("User not logged in, using default shop:", shop);
     }
 
