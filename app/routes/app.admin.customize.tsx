@@ -182,6 +182,37 @@ export default function CustomizeExperience() {
               </div>
 
               <Form method="post">
+                {/* Hidden inputs to preserve all values regardless of active tab */}
+                {activeTab === "colors" && (
+                  <>
+                    <input type="hidden" name="startFormTitle" value={settings.startFormTitle || ""} />
+                    <input type="hidden" name="startFormWelcomeText" value={settings.startFormWelcomeText || ""} />
+                    <input type="hidden" name="startFormSubmitButtonText" value={settings.startFormSubmitButtonText || ""} />
+                    <input type="hidden" name="endFormTitle" value={settings.endFormTitle || ""} />
+                    <input type="hidden" name="endFormWelcomeText" value={settings.endFormWelcomeText || ""} />
+                    <input type="hidden" name="endFormSubmitButtonText" value={settings.endFormSubmitButtonText || ""} />
+                    <input type="hidden" name="successStartTitle" value={settings.successStartTitle || ""} />
+                    <input type="hidden" name="successStartMessage" value={settings.successStartMessage || ""} />
+                    <input type="hidden" name="successStartSubMessage" value={settings.successStartSubMessage || ""} />
+                    <input type="hidden" name="successEndTitle" value={settings.successEndTitle || ""} />
+                    <input type="hidden" name="successEndMessage" value={settings.successEndMessage || ""} />
+                    <input type="hidden" name="successEndSubMessage" value={settings.successEndSubMessage || ""} />
+                  </>
+                )}
+
+                {activeTab === "text" && (
+                  <>
+                    <input type="hidden" name="primaryColor" value={settings.primaryColor || "#667eea"} />
+                    <input type="hidden" name="secondaryColor" value={settings.secondaryColor || "#764ba2"} />
+                    <input type="hidden" name="backgroundColor" value={settings.backgroundColor || "#ffffff"} />
+                    <input type="hidden" name="textColor" value={settings.textColor || "#333333"} />
+                    <input type="hidden" name="buttonColor" value={settings.buttonColor || "#28a745"} />
+                    <input type="hidden" name="buttonHoverColor" value={settings.buttonHoverColor || "#218838"} />
+                    <input type="hidden" name="inputBackgroundColor" value={settings.inputBackgroundColor || "#f9f9f9"} />
+                    <input type="hidden" name="inputBorderColor" value={settings.inputBorderColor || "#dddddd"} />
+                  </>
+                )}
+
                 {/* TEXT TAB */}
                 {activeTab === "text" && (
                   <div style={{ display: "flex", flexDirection: "column", gap: "32px" }}>
