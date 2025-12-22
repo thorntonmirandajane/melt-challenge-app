@@ -518,12 +518,6 @@ export default function ChallengeStart() {
           type="submit"
           className="submit-btn"
           disabled={isSubmitting || uploading}
-          style={{
-            backgroundColor: settings.buttonColor,
-            borderColor: settings.buttonColor
-          }}
-          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = settings.buttonHoverColor || settings.buttonColor}
-          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = settings.buttonColor}
         >
           {uploading ? "Uploading photos..." : isSubmitting ? "Submitting..." : settings.startFormSubmitButtonText}
         </button>
@@ -534,6 +528,8 @@ export default function ChallengeStart() {
       </Form>
 
       <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600;700&display=swap');
+
         .challenge-container {
           max-width: 600px;
           margin: 40px auto;
@@ -614,16 +610,22 @@ export default function ChallengeStart() {
           width: 100%;
           padding: 14px;
           color: white;
-          border: none;
+          background-color: ${settings.buttonColor};
+          border: 1px solid ${settings.buttonColor};
           border-radius: 4px;
           font-size: 16px;
           font-weight: 600;
           cursor: pointer;
-          transition: background 0.3s;
+          transition: background-color 0.3s;
+        }
+
+        .submit-btn:hover:not(:disabled) {
+          background-color: ${settings.buttonHoverColor || settings.buttonColor};
         }
 
         .submit-btn:disabled {
           background: #ccc;
+          border-color: #ccc;
           cursor: not-allowed;
         }
 
