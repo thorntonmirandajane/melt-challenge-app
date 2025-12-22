@@ -66,14 +66,72 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
   for (const participant of participants) {
     try {
-      // Skip if no Shopify customer ID
-      if (!participant.customerId || participant.customerId.startsWith("email:")) {
-        console.log(`Skipping ${participant.email} - no Shopify customer ID`);
+      let customerId = participant.customerId;
+
+      // If participant has email: fallback ID, try to look up by email
+      if (customerId && customerId.startsWith("email:")) {
+        console.log(`Participant ${participant.email} has email fallback ID, trying email lookup...`);
+
+        // Try to find customer by email
+        const emailLookupResponse = await admin.graphql(
+          `#graphql
+          query getCustomerByEmail($email: String!) {
+            customers(first: 1, query: $email) {
+              edges {
+                node {
+                  id
+                  email
+                  numberOfOrders
+                  amountSpent {
+                    amount
+                  }
+                }
+              }
+            }
+          }`,
+          {
+            variables: {
+              email: `email:${participant.email}`,
+            },
+          }
+        );
+
+        const emailData = await emailLookupResponse.json();
+        if (emailData.data?.customers?.edges?.length > 0) {
+          const customer = emailData.data.customers.edges[0].node;
+          customerId = customer.id;
+
+          // Update participant with real customer ID
+          const ordersCount = customer.numberOfOrders || 0;
+          const totalSpent = parseFloat(customer.amountSpent?.amount || "0");
+
+          await prisma.participant.update({
+            where: { id: participant.id },
+            data: {
+              customerId: customer.id,
+              ordersCount,
+              totalSpent,
+            },
+          });
+
+          console.log(`Updated ${participant.email} (found via email): ${ordersCount} orders, $${totalSpent.toFixed(2)} spent`);
+          updated++;
+          continue;
+        } else {
+          console.log(`No Shopify customer found for ${participant.email}`);
+          skipped++;
+          continue;
+        }
+      }
+
+      // Skip if still no valid customer ID
+      if (!customerId) {
+        console.log(`Skipping ${participant.email} - no customer ID`);
         skipped++;
         continue;
       }
 
-      // Query Shopify for customer order data
+      // Query Shopify for customer order data using existing customer ID
       const response = await admin.graphql(
         `#graphql
         query getCustomerOrders($id: ID!) {
@@ -87,7 +145,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         }`,
         {
           variables: {
-            id: participant.customerId,
+            id: customerId,
           },
         }
       );
