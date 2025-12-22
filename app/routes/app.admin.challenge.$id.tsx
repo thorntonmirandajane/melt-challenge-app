@@ -313,6 +313,10 @@ export default function ChallengeDetail() {
             {new Date(challenge.startDate).toLocaleDateString()} -{" "}
             {new Date(challenge.endDate).toLocaleDateString()}
           </p>
+          <p className="challenge-id-info">
+            <strong>Challenge ID:</strong> <code className="challenge-id">{challenge.id}</code>
+            <span className="id-hint"> (Use this ID in your theme block settings to link the form to this specific challenge)</span>
+          </p>
         </div>
       </s-section>
 

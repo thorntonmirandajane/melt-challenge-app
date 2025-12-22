@@ -11,7 +11,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   const error = url.searchParams.get("error");
 
   // Get shop from customer or use default
-  const shop = customer?.shop || "bowmar-nutrition-test.myshopify.com";
+  const shop = customer?.shop || "bowmarnutrition.myshopify.com";
   const settings = await getCustomizationSettings(shop);
 
   return ({
@@ -151,7 +151,7 @@ export default function ChallengeSuccess() {
 
 const getStyles = (settings: any) => `
   .success-container {
-    min-height: 100vh;
+    min-height: auto;
     display: flex;
     align-items: center;
     justify-content: center;
