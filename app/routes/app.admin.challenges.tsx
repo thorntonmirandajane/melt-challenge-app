@@ -425,25 +425,16 @@ export default function ChallengesManager() {
         }
 
         .challenge-actions {
-          display: flex;
+          display: grid;
+          grid-template-columns: 1fr 1fr 1fr;
           gap: 12px;
           margin-top: 16px;
-          flex-wrap: wrap;
         }
 
-        .view-challenge-link {
-          flex: 1;
-          min-width: 150px;
-        }
-
-        .delete-form {
-          flex: 1;
-          min-width: 150px;
-        }
-
+        .view-challenge-link,
+        .delete-form,
         .edit-challenge-link {
-          flex: 1;
-          min-width: 150px;
+          display: flex;
         }
 
         .edit-challenge-btn {
@@ -495,6 +486,10 @@ export default function ChallengesManager() {
 
           .challenge-stats {
             grid-template-columns: repeat(2, 1fr);
+          }
+
+          .challenge-actions {
+            grid-template-columns: 1fr;
           }
         }
       `}</style>
