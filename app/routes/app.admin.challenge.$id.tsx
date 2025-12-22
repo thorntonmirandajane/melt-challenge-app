@@ -1,9 +1,146 @@
-import type { LoaderFunctionArgs, HeadersFunction } from "react-router";
-import { useLoaderData, Link, useRouteError, useSearchParams } from "react-router";
+import type { LoaderFunctionArgs, ActionFunctionArgs, HeadersFunction } from "react-router";
+import { useLoaderData, Link, useRouteError, useSearchParams, Form, useActionData, useNavigation } from "react-router";
 import { authenticate } from "../shopify.server";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import prisma from "../db.server";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+
+// ============================================
+// ACTION - Refresh order data for participants
+// ============================================
+
+export const action = async ({ request, params }: ActionFunctionArgs) => {
+  const { session, admin } = await authenticate.admin(request);
+  const shop = session.shop;
+  const challengeId = params.id;
+
+  if (!challengeId) {
+    return { success: false, error: "Challenge ID required" };
+  }
+
+  const formData = await request.formData();
+  const intent = formData.get("intent");
+
+  if (intent === "refreshOrderData") {
+    try {
+      // Get all participants for this challenge
+      const participants = await prisma.participant.findMany({
+        where: { challengeId },
+      });
+
+      let updated = 0;
+      let failed = 0;
+      let skipped = 0;
+
+      for (const participant of participants) {
+        try {
+          let customerId = participant.customerId;
+
+          // If participant has email: fallback ID, look up by email
+          if (!customerId || customerId.startsWith("email:")) {
+            const customerLookupResponse = await admin.graphql(
+              `#graphql
+              query getCustomerByEmail($email: String!) {
+                customers(first: 1, query: $email) {
+                  edges {
+                    node {
+                      id
+                      numberOfOrders
+                      amountSpent {
+                        amount
+                        currencyCode
+                      }
+                    }
+                  }
+                }
+              }`,
+              {
+                variables: {
+                  email: `email:${participant.email}`,
+                },
+              }
+            );
+
+            const customerData = await customerLookupResponse.json();
+
+            if (customerData.data?.customers?.edges?.length > 0) {
+              const customer = customerData.data.customers.edges[0].node;
+              customerId = customer.id;
+
+              const ordersCount = parseInt(customer.numberOfOrders) || 0;
+              const totalSpent = parseFloat(customer.amountSpent?.amount || "0");
+
+              await prisma.participant.update({
+                where: { id: participant.id },
+                data: {
+                  ordersCount,
+                  totalSpent,
+                },
+              });
+
+              updated++;
+              continue;
+            } else {
+              skipped++;
+              continue;
+            }
+          }
+
+          // Query Shopify for customer order data using existing customer ID
+          const response = await admin.graphql(
+            `#graphql
+            query getCustomerOrders($id: ID!) {
+              customer(id: $id) {
+                numberOfOrders
+                amountSpent {
+                  amount
+                  currencyCode
+                }
+              }
+            }`,
+            {
+              variables: {
+                id: customerId,
+              },
+            }
+          );
+
+          const data = await response.json();
+          if (data.data?.customer) {
+            const ordersCount = data.data.customer.numberOfOrders || 0;
+            const totalSpent = parseFloat(data.data.customer.amountSpent?.amount || "0");
+
+            await prisma.participant.update({
+              where: { id: participant.id },
+              data: {
+                ordersCount,
+                totalSpent,
+              },
+            });
+
+            updated++;
+          } else {
+            failed++;
+          }
+        } catch (error) {
+          console.error(`Error updating ${participant.email}:`, error);
+          failed++;
+        }
+      }
+
+      return {
+        success: true,
+        message: `Order data refreshed! Updated: ${updated}, Skipped: ${skipped}, Failed: ${failed}`,
+        stats: { updated, skipped, failed },
+      };
+    } catch (error) {
+      console.error("Error refreshing order data:", error);
+      return { success: false, error: "Failed to refresh order data" };
+    }
+  }
+
+  return { success: false, error: "Invalid action" };
+};
 
 // ============================================
 // LOADER - Fetch challenge details with Shopify order data
@@ -150,9 +287,23 @@ type SortOption =
 
 export default function ChallengeDetail() {
   const { challenge, participants, stats } = useLoaderData<typeof loader>();
+  const actionData = useActionData<typeof action>();
+  const navigation = useNavigation();
   const [searchParams, setSearchParams] = useSearchParams();
   const [sortBy, setSortBy] = useState<SortOption>("weightLoss");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+
+  const isRefreshing = navigation.state === "submitting" && navigation.formData?.get("intent") === "refreshOrderData";
+
+  // Show success message when action completes
+  useEffect(() => {
+    if (actionData?.success) {
+      setShowSuccessMessage(true);
+      const timer = setTimeout(() => setShowSuccessMessage(false), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [actionData]);
 
   // Sort participants
   const sortedParticipants = [...participants].sort((a, b) => {
@@ -275,6 +426,18 @@ export default function ChallengeDetail() {
         <s-button>Edit Challenge</s-button>
       </Link>
 
+      {/* Success/Error Messages */}
+      {showSuccessMessage && actionData?.success && (
+        <s-banner status="success">
+          <p>{actionData.message}</p>
+        </s-banner>
+      )}
+      {actionData && !actionData.success && (
+        <s-banner status="critical">
+          <p>{actionData.error || "An error occurred"}</p>
+        </s-banner>
+      )}
+
       {/* Challenge Info */}
       <s-section>
         <div className="challenge-info">
@@ -328,9 +491,15 @@ export default function ChallengeDetail() {
 
       {/* Participants Table */}
       <s-section heading="Participants">
-        {/* Export Button */}
+        {/* Export and Refresh Buttons */}
         {sortedParticipants.length > 0 && (
           <div className="export-controls">
+            <Form method="post" style={{ display: "inline" }}>
+              <input type="hidden" name="intent" value="refreshOrderData" />
+              <button type="submit" disabled={isRefreshing} className="refresh-btn">
+                {isRefreshing ? "Refreshing..." : "🔄 Refresh Order Data"}
+              </button>
+            </Form>
             <button onClick={handleExportCSV} className="export-btn">
               📊 Export to CSV
             </button>
@@ -564,7 +733,35 @@ export default function ChallengeDetail() {
         .export-controls {
           display: flex;
           justify-content: flex-end;
+          gap: 12px;
           margin-bottom: 16px;
+        }
+
+        .refresh-btn {
+          padding: 10px 20px;
+          background: #3b82f6;
+          color: white;
+          border: none;
+          border-radius: 6px;
+          cursor: pointer;
+          font-size: 14px;
+          font-weight: 600;
+          transition: all 0.2s;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .refresh-btn:hover:not(:disabled) {
+          background: #2563eb;
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+
+        .refresh-btn:disabled {
+          background: #94a3b8;
+          cursor: not-allowed;
+          transform: none;
         }
 
         .export-btn {
