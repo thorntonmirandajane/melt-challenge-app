@@ -5,8 +5,6 @@ import { Form, useLoaderData, useNavigation, useSubmit } from "react-router";
 import { requireCustomer } from "../utils/customer-auth.server";
 import { canStartChallenge, getOrCreateParticipant } from "../utils/challenge.server";
 import { validateChallengeForm } from "../utils/validation";
-import { lookupCustomerByEmail } from "../utils/shopify-customer.server";
-import { authenticate } from "../shopify.server";
 import { getCustomizationSettings } from "../utils/customization.server";
 import prisma from "../db.server";
 
@@ -126,41 +124,15 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       console.log("User not logged in, using default shop:", shop);
     }
 
-    // Lookup Shopify customer by email to get order data
-    let shopifyCustomer = null;
-    let ordersCount = null;
-    let totalSpent = null;
+    // Note: Order data will be populated by the backfill tool or webhook
+    // We can't look up Shopify customer data here because customer-facing
+    // forms don't have admin authentication
+    const ordersCount = null;
+    const totalSpent = null;
 
-    try {
-      const { admin: authAdmin } = await authenticate.admin(request);
-      admin = authAdmin;
-      console.log(`🔍 Looking up Shopify customer by email: ${email}`);
-      shopifyCustomer = await lookupCustomerByEmail(admin, email);
-
-      if (shopifyCustomer) {
-        console.log(`✅ Found Shopify customer:`, {
-          id: shopifyCustomer.id,
-          email: shopifyCustomer.email,
-          ordersCount: shopifyCustomer.ordersCount,
-          totalSpent: shopifyCustomer.totalSpent,
-        });
-        customerId = shopifyCustomer.id;
-        firstName = firstName || shopifyCustomer.firstName || firstNameInput;
-        lastName = lastName || shopifyCustomer.lastName || lastNameInput;
-        ordersCount = shopifyCustomer.ordersCount;
-        totalSpent = parseFloat(shopifyCustomer.totalSpent);
-      } else {
-        console.log(`❌ No Shopify customer found for email: ${email}`);
-        // Use form input if no Shopify customer found
-        firstName = firstName || firstNameInput;
-        lastName = lastName || lastNameInput;
-      }
-    } catch (error) {
-      console.log("❌ Could not lookup Shopify customer:", error);
-      // Use form input as fallback
-      firstName = firstName || firstNameInput;
-      lastName = lastName || lastNameInput;
-    }
+    // Use form input for names if not already set
+    firstName = firstName || firstNameInput;
+    lastName = lastName || lastNameInput;
 
     // Get or create participant by email
     console.log("Getting or creating participant with:", { shop, customerId, email, firstName, lastName });
@@ -532,8 +504,8 @@ export default function ChallengeStart() {
 
         .challenge-container {
           max-width: 600px;
-          margin: 40px auto;
-          padding: 20px;
+          margin: 0 auto;
+          padding: 40px 20px;
           font-family: 'Jost', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
 

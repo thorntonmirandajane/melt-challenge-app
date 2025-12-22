@@ -196,6 +196,16 @@ model CustomizationSettings {
   successEndMessage         String?
   successEndSubMessage      String?
 
+  // What's Next bullets - Start Challenge Success
+  successStartStep1         String?  @default("Stay committed to your goals")
+  successStartStep2         String?  @default("Track your progress regularly")
+  successStartStep3         String?  @default("Come back when you're ready to complete the challenge")
+
+  // What's Next bullets - End Challenge Success
+  successEndStep1           String?  @default("Celebrate your achievement!")
+  successEndStep2           String?  @default("Check with the store for any rewards or recognition")
+  successEndStep3           String?  @default("Consider joining the next challenge to keep your momentum")
+
   // Color Customization
   primaryColor              String?  @default("#667eea") // Main brand color
   secondaryColor            String?  @default("#764ba2") // Secondary color

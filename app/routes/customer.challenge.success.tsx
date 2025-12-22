@@ -85,9 +85,9 @@ export default function ChallengeSuccess() {
           <div className="next-steps">
             <h3>What's Next?</h3>
             <ul>
-              <li>Stay committed to your goals</li>
-              <li>Track your progress regularly</li>
-              <li>Come back when you're ready to complete the challenge</li>
+              <li>{settings.successStartStep1 || "Stay committed to your goals"}</li>
+              <li>{settings.successStartStep2 || "Track your progress regularly"}</li>
+              <li>{settings.successStartStep3 || "Come back when you're ready to complete the challenge"}</li>
             </ul>
           </div>
         </div>
@@ -119,9 +119,9 @@ export default function ChallengeSuccess() {
           <div className="next-steps">
             <h3>What Now?</h3>
             <ul>
-              <li>Celebrate your achievement!</li>
-              <li>Check with the store for any rewards or recognition</li>
-              <li>Consider joining the next challenge to keep your momentum</li>
+              <li>{settings.successEndStep1 || "Celebrate your achievement!"}</li>
+              <li>{settings.successEndStep2 || "Check with the store for any rewards or recognition"}</li>
+              <li>{settings.successEndStep3 || "Consider joining the next challenge to keep your momentum"}</li>
             </ul>
           </div>
         </div>

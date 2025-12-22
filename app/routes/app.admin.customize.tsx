@@ -54,6 +54,12 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       successEndTitle: getFormValue("successEndTitle"),
       successEndMessage: getFormValue("successEndMessage"),
       successEndSubMessage: getFormValue("successEndSubMessage"),
+      successStartStep1: getFormValue("successStartStep1"),
+      successStartStep2: getFormValue("successStartStep2"),
+      successStartStep3: getFormValue("successStartStep3"),
+      successEndStep1: getFormValue("successEndStep1"),
+      successEndStep2: getFormValue("successEndStep2"),
+      successEndStep3: getFormValue("successEndStep3"),
     };
 
     // Extract all color settings
@@ -197,6 +203,12 @@ export default function CustomizeExperience() {
                     <input type="hidden" name="successEndTitle" value={settings.successEndTitle || ""} />
                     <input type="hidden" name="successEndMessage" value={settings.successEndMessage || ""} />
                     <input type="hidden" name="successEndSubMessage" value={settings.successEndSubMessage || ""} />
+                    <input type="hidden" name="successStartStep1" value={settings.successStartStep1 || ""} />
+                    <input type="hidden" name="successStartStep2" value={settings.successStartStep2 || ""} />
+                    <input type="hidden" name="successStartStep3" value={settings.successStartStep3 || ""} />
+                    <input type="hidden" name="successEndStep1" value={settings.successEndStep1 || ""} />
+                    <input type="hidden" name="successEndStep2" value={settings.successEndStep2 || ""} />
+                    <input type="hidden" name="successEndStep3" value={settings.successEndStep3 || ""} />
                   </>
                 )}
 
@@ -365,6 +377,56 @@ export default function CustomizeExperience() {
                               style={{ width: "100%", padding: "12px 14px", border: "1px solid #ddd", borderRadius: "6px", fontSize: "14px" }}
                             />
                           </div>
+
+                          <div style={{ marginTop: "16px", paddingTop: "16px", borderTop: "1px solid #e5e5e5" }}>
+                            <label style={{ display: "block", fontWeight: "700", marginBottom: "12px", fontSize: "15px", color: "#667eea" }}>
+                              What's Next? Steps (3 bullet points)
+                            </label>
+
+                            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                              <div>
+                                <label htmlFor="successStartStep1" style={{ display: "block", fontWeight: "600", marginBottom: "8px", fontSize: "13px" }}>
+                                  Step 1
+                                </label>
+                                <input
+                                  type="text"
+                                  id="successStartStep1"
+                                  name="successStartStep1"
+                                  defaultValue={settings.successStartStep1 || ""}
+                                  placeholder="Stay committed to your goals"
+                                  style={{ width: "100%", padding: "10px 12px", border: "1px solid #ddd", borderRadius: "4px", fontSize: "14px" }}
+                                />
+                              </div>
+
+                              <div>
+                                <label htmlFor="successStartStep2" style={{ display: "block", fontWeight: "600", marginBottom: "8px", fontSize: "13px" }}>
+                                  Step 2
+                                </label>
+                                <input
+                                  type="text"
+                                  id="successStartStep2"
+                                  name="successStartStep2"
+                                  defaultValue={settings.successStartStep2 || ""}
+                                  placeholder="Track your progress regularly"
+                                  style={{ width: "100%", padding: "10px 12px", border: "1px solid #ddd", borderRadius: "4px", fontSize: "14px" }}
+                                />
+                              </div>
+
+                              <div>
+                                <label htmlFor="successStartStep3" style={{ display: "block", fontWeight: "600", marginBottom: "8px", fontSize: "13px" }}>
+                                  Step 3
+                                </label>
+                                <input
+                                  type="text"
+                                  id="successStartStep3"
+                                  name="successStartStep3"
+                                  defaultValue={settings.successStartStep3 || ""}
+                                  placeholder="Come back when you're ready to complete the challenge"
+                                  style={{ width: "100%", padding: "10px 12px", border: "1px solid #ddd", borderRadius: "4px", fontSize: "14px" }}
+                                />
+                              </div>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </s-card>
@@ -415,6 +477,55 @@ export default function CustomizeExperience() {
                               rows={2}
                               style={{ width: "100%", padding: "12px 14px", border: "1px solid #ddd", borderRadius: "6px", fontSize: "14px" }}
                             />
+                          </div>
+
+                          <div style={{ marginTop: "16px", paddingTop: "16px", borderTop: "1px solid #e5e5e5" }}>
+                            <label style={{ display: "block", fontWeight: "700", marginBottom: "12px", fontSize: "15px", color: "#667eea" }}>
+                              What's Next? Steps (3 bullet points)
+                            </label>
+                            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                              <div>
+                                <label htmlFor="successEndStep1" style={{ display: "block", fontWeight: "600", marginBottom: "8px", fontSize: "13px" }}>
+                                  Step 1
+                                </label>
+                                <input
+                                  type="text"
+                                  id="successEndStep1"
+                                  name="successEndStep1"
+                                  defaultValue={settings.successEndStep1 || ""}
+                                  placeholder="Celebrate your achievement!"
+                                  style={{ width: "100%", padding: "10px 12px", border: "1px solid #ddd", borderRadius: "4px", fontSize: "14px" }}
+                                />
+                              </div>
+
+                              <div>
+                                <label htmlFor="successEndStep2" style={{ display: "block", fontWeight: "600", marginBottom: "8px", fontSize: "13px" }}>
+                                  Step 2
+                                </label>
+                                <input
+                                  type="text"
+                                  id="successEndStep2"
+                                  name="successEndStep2"
+                                  defaultValue={settings.successEndStep2 || ""}
+                                  placeholder="Check with the store for any rewards or recognition"
+                                  style={{ width: "100%", padding: "10px 12px", border: "1px solid #ddd", borderRadius: "4px", fontSize: "14px" }}
+                                />
+                              </div>
+
+                              <div>
+                                <label htmlFor="successEndStep3" style={{ display: "block", fontWeight: "600", marginBottom: "8px", fontSize: "13px" }}>
+                                  Step 3
+                                </label>
+                                <input
+                                  type="text"
+                                  id="successEndStep3"
+                                  name="successEndStep3"
+                                  defaultValue={settings.successEndStep3 || ""}
+                                  placeholder="Consider joining the next challenge to keep your momentum"
+                                  style={{ width: "100%", padding: "10px 12px", border: "1px solid #ddd", borderRadius: "4px", fontSize: "14px" }}
+                                />
+                              </div>
+                            </div>
                           </div>
                         </div>
                       </div>
