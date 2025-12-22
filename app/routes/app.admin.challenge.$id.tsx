@@ -58,38 +58,9 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
           ? (weightLoss / participant.startWeight) * 100
           : null;
 
-      // Fetch customer order data from Shopify
-      let orderCount = 0;
-      let totalSpent = 0;
-
-      try {
-        const customerId = participant.customerId.split("/").pop(); // Extract numeric ID
-        const response = await admin.graphql(
-          `#graphql
-          query getCustomerOrders($id: ID!) {
-            customer(id: $id) {
-              numberOfOrders
-              amountSpent {
-                amount
-                currencyCode
-              }
-            }
-          }`,
-          {
-            variables: {
-              id: participant.customerId,
-            },
-          }
-        );
-
-        const data = await response.json();
-        if (data.data?.customer) {
-          orderCount = data.data.customer.numberOfOrders || 0;
-          totalSpent = parseFloat(data.data.customer.amountSpent?.amount || "0");
-        }
-      } catch (error) {
-        console.error("Error fetching customer orders:", error);
-      }
+      // Use order data from database (populated by backfill or on form submission)
+      const orderCount = participant.ordersCount || 0;
+      const totalSpent = participant.totalSpent || 0;
 
       return {
         id: participant.id,
