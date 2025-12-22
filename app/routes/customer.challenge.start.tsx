@@ -17,7 +17,7 @@ import prisma from "../db.server";
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   // Try to get customer if logged in, but don't require it
   let customer = null;
-  let shop = "bowmar-nutrition-test.myshopify.com"; // Default shop
+  let shop = "bowmarnutrition.myshopify.com"; // Default shop - production store
 
   try {
     customer = await requireCustomer(request);
