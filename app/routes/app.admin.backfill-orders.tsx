@@ -67,20 +67,62 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   for (const participant of participants) {
     try {
       let customerId = participant.customerId;
+      let needsCustomerIdUpdate = false;
 
-      // If participant has email: fallback ID, skip it
-      // The customer needs to be logged in for us to get their real Shopify customer ID
-      if (customerId && customerId.startsWith("email:")) {
-        console.log(`Skipping ${participant.email} - email fallback requires customer to be logged in`);
-        skipped++;
-        continue;
-      }
+      // If participant has email: fallback ID, look up by email
+      if (!customerId || customerId.startsWith("email:")) {
+        console.log(`Looking up Shopify customer by email for ${participant.email}...`);
 
-      // Skip if still no valid customer ID
-      if (!customerId) {
-        console.log(`Skipping ${participant.email} - no customer ID`);
-        skipped++;
-        continue;
+        const customerLookupResponse = await admin.graphql(
+          `#graphql
+          query getCustomerByEmail($email: String!) {
+            customers(first: 1, query: $email) {
+              edges {
+                node {
+                  id
+                  numberOfOrders
+                  amountSpent {
+                    amount
+                    currencyCode
+                  }
+                }
+              }
+            }
+          }`,
+          {
+            variables: {
+              email: `email:${participant.email}`,
+            },
+          }
+        );
+
+        const customerData = await customerLookupResponse.json();
+
+        if (customerData.data?.customers?.edges?.length > 0) {
+          const customer = customerData.data.customers.edges[0].node;
+          customerId = customer.id;
+          needsCustomerIdUpdate = true;
+
+          const ordersCount = customer.numberOfOrders || 0;
+          const totalSpent = parseFloat(customer.amountSpent?.amount || "0");
+
+          await prisma.participant.update({
+            where: { id: participant.id },
+            data: {
+              customerId,
+              ordersCount,
+              totalSpent,
+            },
+          });
+
+          console.log(`✅ Updated ${participant.email}: ${ordersCount} orders, $${totalSpent.toFixed(2)} spent, customerId: ${customerId}`);
+          updated++;
+          continue;
+        } else {
+          console.log(`❌ No Shopify customer found for ${participant.email}`);
+          skipped++;
+          continue;
+        }
       }
 
       // Query Shopify for customer order data using existing customer ID
@@ -115,14 +157,14 @@ export const action = async ({ request }: ActionFunctionArgs) => {
           },
         });
 
-        console.log(`Updated ${participant.email}: ${ordersCount} orders, $${totalSpent.toFixed(2)} spent`);
+        console.log(`✅ Updated ${participant.email}: ${ordersCount} orders, $${totalSpent.toFixed(2)} spent`);
         updated++;
       } else {
-        console.error(`Customer not found in Shopify for ${participant.email}`);
+        console.error(`❌ Customer not found in Shopify for ${participant.email}`);
         failed++;
       }
     } catch (error) {
-      console.error(`Error updating ${participant.email}:`, error);
+      console.error(`❌ Error updating ${participant.email}:`, error);
       failed++;
     }
   }
