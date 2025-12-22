@@ -1,7 +1,7 @@
 # Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
-client_id = "cec3b0930afab043aa73ba47c552b117"
-name = "melt-challenge.app"
+client_id = "a9ded7ed73798a326b36719d92f3684e"
+name = "Bowmar Nutrition Challenge App"
 application_url = "https://melt-challenge-app.onrender.com"
 embedded = true
 
